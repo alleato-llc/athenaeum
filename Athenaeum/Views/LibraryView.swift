@@ -88,6 +88,32 @@ public struct LibraryView: View {
         .sheet(item: $viewModel.editingBook) { entry in
             BookEditView(viewModel: viewModel, entry: entry)
         }
+        .sheet(item: $viewModel.directoryImportResult) { result in
+            DirectoryImportSummaryView(result: result)
+        }
+        .overlay {
+            if viewModel.isImportingDirectory {
+                ZStack {
+                    Color.black.opacity(0.3)
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        if let progress = viewModel.directoryImportProgress {
+                            Text(String(format: NSLocalizedString("import.directory.progress", bundle: bundle, comment: ""),
+                                        progress.current, progress.total))
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        } else {
+                            Text(NSLocalizedString("import.directory.scanning", bundle: bundle, comment: ""))
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(24)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(.ultraThinMaterial))
+                }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .addBooks)) { _ in
             openFilePicker()
         }

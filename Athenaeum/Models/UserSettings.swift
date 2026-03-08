@@ -8,6 +8,14 @@ public struct UserSettings {
     public var themeMode: ThemeMode
     public var lightThemeId: String
     public var darkThemeId: String
+    public var language: String?
+
+    public static let supportedLanguages: [(code: String?, name: String)] = [
+        (nil, "System Default"),
+        ("en", "English"),
+        ("es", "Español"),
+        ("it", "Italiano"),
+    ]
 
     public static var defaultLibraryPath: String {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -17,13 +25,14 @@ public struct UserSettings {
     public init(libraryPath: String? = nil, defaultFont: String = "Georgia",
                 fontPairingId: String? = nil,
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
-                darkThemeId: String = "charcoal") {
+                darkThemeId: String = "charcoal", language: String? = nil) {
         self.libraryPath = libraryPath ?? Self.defaultLibraryPath
         self.defaultFont = defaultFont
         self.fontPairingId = fontPairingId
         self.themeMode = themeMode
         self.lightThemeId = lightThemeId
         self.darkThemeId = darkThemeId
+        self.language = language
     }
 
     public var useFontPairing: Bool {

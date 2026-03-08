@@ -12,6 +12,8 @@ public struct EPUBWebView: NSViewRepresentable {
     public func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        config.userContentController.add(context.coordinator, name: "noteHandler")
+        config.userContentController.add(context.coordinator, name: "highlightHandler")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
@@ -26,11 +28,20 @@ public struct EPUBWebView: NSViewRepresentable {
         Coordinator(viewModel: viewModel)
     }
 
-    public class Coordinator: NSObject, WKNavigationDelegate {
+    public class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let viewModel: ReaderViewModel
 
         init(viewModel: ReaderViewModel) {
             self.viewModel = viewModel
+        }
+
+        public func userContentController(_ userContentController: WKUserContentController,
+                                           didReceive message: WKScriptMessage) {
+            if message.name == "noteHandler" {
+                viewModel.handleNoteMessage(message.body)
+            } else if message.name == "highlightHandler" {
+                viewModel.handleHighlightMessage(message.body)
+            }
         }
 
         public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

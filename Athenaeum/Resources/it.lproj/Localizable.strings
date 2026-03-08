@@ -13,6 +13,8 @@
 /* Library context menu */
 "library.edit_metadata" = "Modifica Metadati";
 "library.delete" = "Elimina dalla Libreria";
+"library.copy" = "Copia";
+"library.show_in_finder" = "Mostra nel Finder";
 
 /* Library table columns */
 "library.column.title" = "Titolo";
@@ -35,10 +37,21 @@
 
 /* Settings */
 "settings.title" = "Impostazioni";
+"settings.tab.general" = "Generale";
+"settings.tab.reading" = "Lettura";
+"settings.tab.library_data" = "Dati della Libreria";
+"settings.language" = "Lingua";
+"settings.language.restart" = "Riavvia l'app per applicare il cambio di lingua.";
 "settings.library" = "Libreria";
 "settings.library.path" = "Percorso della Libreria";
 "settings.library.browse" = "Sfoglia…";
 "settings.reading" = "Lettura";
+"settings.data.export" = "Esporta Libreria";
+"settings.data.export.description" = "Esporta l'intera libreria (libri, copertine e database) in un unico file per backup o trasferimento.";
+"settings.data.export.button" = "Esporta\U2026";
+"settings.data.import" = "Importa Libreria";
+"settings.data.import.description" = "Importa un file di libreria esportato in precedenza. Questo sostituirà la libreria attuale.";
+"settings.data.import.button" = "Importa\U2026";
 "settings.font" = "Carattere Predefinito";
 "settings.font.pairing" = "Usa Abbinamento Caratteri";
 "settings.font.pairing.label" = "Abbinamento Caratteri";
@@ -74,6 +87,30 @@
 "export.status.cancelled" = "Annullato";
 "export.cancel" = "Annulla";
 "export.progress.chapter" = "Capitolo %d di %d";
+
+/* Notes review */
+"library.review_notes" = "Rivedi Note";
+"notes.review.empty" = "Nessuna nota per questo libro";
+"notes.review.chapter_empty" = "Nessuna nota per questo capitolo";
+"notes.review.section.chapter" = "Note del Capitolo";
+"notes.review.section.inline" = "Note in Linea";
+
+/* Import from Directory */
+"settings.data.import_directory" = "Importa da Cartella";
+"settings.data.import_directory.description" = "Scansiona ricorsivamente una cartella alla ricerca di file EPUB e importali nella tua libreria.";
+"settings.data.import_directory.button" = "Importa da Cartella\U2026";
+"import.directory.title" = "Seleziona Cartella da Importare";
+"import.directory.scanning" = "Ricerca libri\U2026";
+"import.directory.progress" = "Importazione %d di %d\U2026";
+"import.directory.summary" = "%d EPUB importati, %d altri file ignorati";
+"import.directory.summary.failed" = "%d falliti";
+"import.directory.failed_section" = "Importazioni Fallite";
+"import.directory.skipped_section" = "File Ignorati";
+"import.directory.column.filename" = "Nome File";
+"import.directory.column.format" = "Formato";
+"import.directory.column.path" = "Percorso";
+"import.directory.column.reason" = "Motivo";
+"import.directory.done" = "Fatto";
 
 /* Import errors */
 "import.error.duplicate" = "Un libro intitolato \"%@\" dello stesso autore esiste già nella tua libreria.";

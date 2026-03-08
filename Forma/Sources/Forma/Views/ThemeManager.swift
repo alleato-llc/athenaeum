@@ -81,6 +81,16 @@ public class ThemeManager: ObservableObject {
                         color: inherit !important;
                         background-color: transparent !important;
                     }
+                    mark[data-ath-highlight] {
+                        background-color: var(--ath-hl-color) !important;
+                        color: inherit !important;
+                    }
+                    mark[data-ath-note] {
+                        background-color: var(--ath-note-color) !important;
+                        color: inherit !important;
+                        border-bottom: 1px dashed rgba(147,130,220,0.6);
+                        cursor: pointer;
+                    }
                     \(headingCSS)
                     body { background-color: \(theme.backgroundColor) !important; }
                     a, a:visited { color: \(theme.linkColor) !important; }
@@ -117,6 +127,16 @@ public class ThemeManager: ObservableObject {
                         font-family: inherit !important;
                         color: inherit !important;
                         background-color: transparent !important;
+                    }
+                    mark[data-ath-highlight] {
+                        background-color: var(--ath-hl-color) !important;
+                        color: inherit !important;
+                    }
+                    mark[data-ath-note] {
+                        background-color: var(--ath-note-color) !important;
+                        color: inherit !important;
+                        border-bottom: 1px dashed rgba(147,130,220,0.6);
+                        cursor: pointer;
                     }
                     body { background-color: \(theme.backgroundColor) !important; }
                     a, a:visited { color: \(theme.linkColor) !important; }

@@ -17,5 +17,37 @@
 "of %d" = "di %d";
 "nav.mode.hint" = "Doppio clic per passare dalla modalità Pagina a Capitolo";
 
+/* Highlighter */
+"highlight.toggle" = "Evidenziatore";
+"highlight.mode" = "Modalità Evidenziazione";
+"highlight.color" = "Colore Evidenziazione";
+"highlight.color.yellow" = "Giallo";
+"highlight.color.green" = "Verde";
+"highlight.color.blue" = "Blu";
+"highlight.color.pink" = "Rosa";
+"highlight.color.orange" = "Arancione";
+"highlight.eraser" = "Gomma";
+"highlight.eraseAll" = "Cancella Tutto sulla Pagina";
+"highlight.eraseAll.confirm" = "Rimuovere tutte le evidenziazioni da questa pagina?";
+"highlight.eraseAll.yes" = "Cancella Tutto";
+"Cancel" = "Annulla";
+
+/* Bookmarks */
+"bookmark.toggle" = "Segnalibri";
+"bookmark.add" = "Aggiungi Segnalibro";
+
+/* Note */
+"notes.toggle" = "Note";
+"notes.chapter" = "Note del Capitolo";
+"notes.chapter.toggle" = "Note del Capitolo";
+"notes.inlineMode" = "Modalità Nota in Linea";
+"notes.noteColor" = "Colore della nota";
+"notes.addInline" = "Aggiungi Nota";
+"notes.save" = "Salva";
+"notes.edit" = "Modifica";
+"notes.delete" = "Elimina";
+"notes.delete.confirm" = "Eliminare questa nota?";
+"notes.dismiss" = "Fatto";
+
 /* Window title */
 "title.progress" = "Octavo | %d%% Completato";

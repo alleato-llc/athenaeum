@@ -55,11 +55,12 @@ public class SettingsRepository {
 
         let lightThemeId = try get("lightThemeId") ?? "classic"
         let darkThemeId = try get("darkThemeId") ?? "charcoal"
+        let language = try get("language")
 
         return UserSettings(libraryPath: libraryPath, defaultFont: defaultFont,
                            fontPairingId: fontPairingId,
                            themeMode: themeMode, lightThemeId: lightThemeId,
-                           darkThemeId: darkThemeId)
+                           darkThemeId: darkThemeId, language: language)
     }
 
     public func saveSettings(_ settings: UserSettings) throws {
@@ -73,5 +74,12 @@ public class SettingsRepository {
         try set("themeMode", value: settings.themeMode.rawValue)
         try set("lightThemeId", value: settings.lightThemeId)
         try set("darkThemeId", value: settings.darkThemeId)
+        if let language = settings.language {
+            try set("language", value: language)
+            UserDefaults.standard.set([language], forKey: "AppleLanguages")
+        } else {
+            try delete("language")
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        }
     }
 }

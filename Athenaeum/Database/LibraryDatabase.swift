@@ -79,6 +79,63 @@ public class LibraryDatabase {
             try execute("ALTER TABLE books ADD COLUMN reading_position TEXT;")
             try setUserVersion(2)
         }
+
+        if version < 3 {
+            try execute("""
+                CREATE TABLE IF NOT EXISTS highlights (
+                    id TEXT PRIMARY KEY,
+                    book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                    chapter_index INTEGER NOT NULL,
+                    highlight_data TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                """)
+            try execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_highlights_book_chapter
+                ON highlights(book_id, chapter_index);
+                """)
+            try setUserVersion(3)
+        }
+
+        if version < 4 {
+            // Create chapters table
+            try execute("""
+                CREATE TABLE IF NOT EXISTS chapters (
+                    id TEXT PRIMARY KEY,
+                    book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                    chapter_index INTEGER NOT NULL,
+                    highlight_data TEXT,
+                    UNIQUE(book_id, chapter_index)
+                );
+                """)
+            // Migrate existing highlights data into chapters
+            try execute("""
+                INSERT OR IGNORE INTO chapters (id, book_id, chapter_index, highlight_data)
+                SELECT id, book_id, chapter_index, highlight_data FROM highlights;
+                """)
+            // Create bookmarks table
+            try execute("""
+                CREATE TABLE IF NOT EXISTS bookmarks (
+                    id TEXT PRIMARY KEY,
+                    chapter_id TEXT NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+                    scroll_position REAL NOT NULL,
+                    label TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                """)
+            try execute("""
+                CREATE INDEX IF NOT EXISTS idx_bookmarks_chapter ON bookmarks(chapter_id);
+                """)
+            // Drop old highlights table
+            try execute("DROP TABLE IF EXISTS highlights;")
+            try setUserVersion(4)
+        }
+
+        if version < 5 {
+            try execute("ALTER TABLE chapters ADD COLUMN notes TEXT;")
+            try execute("ALTER TABLE chapters ADD COLUMN inline_notes TEXT;")
+            try setUserVersion(5)
+        }
     }
 
     private func getUserVersion() throws -> Int {

@@ -9,19 +9,29 @@ public struct ReaderView: View {
     @State private var showSidebar: Bool = true
     @State private var showTopBar: Bool = false
     @State private var showBottomBar: Bool = false
+    @State private var showHighlightPopover: Bool = false
+    @State private var showBookmarkPopover: Bool = false
+    @State private var showNotePopover: Bool = false
+    @State private var showChapterNotes: Bool = false
     @State private var eventMonitor: Any?
 
     public init(book: EPUBBook, libraryBookId: String? = nil,
                 lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
                 fontFamily: String = "Georgia", fontPairingId: String? = nil,
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
-                darkThemeId: String = "charcoal") {
+                darkThemeId: String = "charcoal",
+                highlights: [Int: [Highlight]] = [:],
+                bookmarks: [Bookmark] = [],
+                chapterNotes: [Int: String] = [:],
+                inlineNotes: [Int: [InlineNote]] = [:]) {
         self.book = book
         _viewModel = StateObject(wrappedValue: ReaderViewModel(
             book: book, libraryBookId: libraryBookId,
             lastChapterIndex: lastChapterIndex, lastScrollPosition: lastScrollPosition,
             fontFamily: fontFamily, fontPairingId: fontPairingId,
-            themeMode: themeMode, lightThemeId: lightThemeId, darkThemeId: darkThemeId))
+            themeMode: themeMode, lightThemeId: lightThemeId, darkThemeId: darkThemeId,
+            highlights: highlights, bookmarks: bookmarks,
+            chapterNotes: chapterNotes, inlineNotes: inlineNotes))
     }
 
     private var percentComplete: Int {
@@ -60,8 +70,12 @@ public struct ReaderView: View {
                 }
                 .overlay(alignment: .top) {
                     VStack(spacing: 0) {
-                        if showTopBar {
-                            ReaderToolbarView(viewModel: viewModel, showSidebar: $showSidebar)
+                        if showTopBar || showHighlightPopover || showBookmarkPopover || showNotePopover || showChapterNotes {
+                            ReaderToolbarView(viewModel: viewModel, showSidebar: $showSidebar,
+                                              showHighlightPopover: $showHighlightPopover,
+                                              showBookmarkPopover: $showBookmarkPopover,
+                                              showNotePopover: $showNotePopover,
+                                              showChapterNotes: $showChapterNotes)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
                         Color.white.opacity(0.001)
@@ -99,6 +113,12 @@ public struct ReaderView: View {
             viewModel.saveProgressToLibrary()
             removeKeyboardHandling()
         }
+        .sheet(isPresented: $viewModel.showingNoteEditor) {
+            NoteEditorSheet(viewModel: viewModel)
+        }
+        .sheet(item: $viewModel.editingInlineNote) { _ in
+            NoteDetailSheet(viewModel: viewModel)
+        }
     }
 
     private func setupKeyboardHandling() {
@@ -112,6 +132,33 @@ public struct ReaderView: View {
                 case 27: // Cmd+-
                     viewModel.zoomOut()
                     return nil
+                case 4: // Cmd+H
+                    if event.modifierFlags.contains(.shift) && viewModel.libraryBookId != nil {
+                        viewModel.toggleHighlightMode()
+                        return nil
+                    }
+                case 11: // Cmd+B
+                    if viewModel.libraryBookId != nil {
+                        viewModel.addBookmark()
+                        return nil
+                    }
+                case 45: // Cmd+N
+                    if event.modifierFlags.contains(.shift) && viewModel.libraryBookId != nil {
+                        viewModel.toggleNoteMode()
+                        return nil
+                    }
+                case 6: // Cmd+Z
+                    if event.modifierFlags.contains(.shift) {
+                        if viewModel.undoManager.canRedo {
+                            viewModel.undoManager.redo()
+                            return nil
+                        }
+                    } else {
+                        if viewModel.undoManager.canUndo {
+                            viewModel.undoManager.undo()
+                            return nil
+                        }
+                    }
                 default:
                     break
                 }
@@ -182,6 +229,10 @@ struct ReaderToolbarView: View {
     @ObservedObject var viewModel: ReaderViewModel
 
     @Binding var showSidebar: Bool
+    @Binding var showHighlightPopover: Bool
+    @Binding var showBookmarkPopover: Bool
+    @Binding var showNotePopover: Bool
+    @Binding var showChapterNotes: Bool
 
     private var themeModeIcon: String {
         switch viewModel.themeManager.themeMode {
@@ -262,6 +313,48 @@ struct ReaderToolbarView: View {
 
             Button(action: { viewModel.zoomIn() }) {
                 Image(systemName: "plus.magnifyingglass")
+            }
+
+            if viewModel.libraryBookId != nil {
+                Button(action: { showHighlightPopover.toggle() }) {
+                    Image(systemName: viewModel.isHighlightModeActive ? "highlighter" : "highlighter")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(viewModel.isHighlightModeActive ? Color.accentColor : .primary)
+                }
+                .help(NSLocalizedString("highlight.toggle", bundle: bundle, comment: ""))
+                .popover(isPresented: $showHighlightPopover) {
+                    HighlightPopoverView(viewModel: viewModel)
+                }
+
+                Button(action: { showBookmarkPopover.toggle() }) {
+                    Image(systemName: "bookmark")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(viewModel.bookmarks.isEmpty ? .primary : Color.accentColor)
+                }
+                .help(NSLocalizedString("bookmark.toggle", bundle: bundle, comment: ""))
+                .popover(isPresented: $showBookmarkPopover) {
+                    BookmarkPopoverView(viewModel: viewModel)
+                }
+
+                Button(action: { showNotePopover.toggle() }) {
+                    Image(systemName: "note.text")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(viewModel.isNoteModeActive ? Color.accentColor : .primary)
+                }
+                .help(NSLocalizedString("notes.toggle", bundle: bundle, comment: ""))
+                .popover(isPresented: $showNotePopover) {
+                    NoteToolbarPopover(viewModel: viewModel)
+                }
+
+                Button(action: { showChapterNotes.toggle() }) {
+                    Image(systemName: "doc.text")
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundStyle(!viewModel.chapterNotes.isEmpty ? Color.accentColor : .primary)
+                }
+                .help(NSLocalizedString("notes.chapter.toggle", bundle: bundle, comment: ""))
+                .popover(isPresented: $showChapterNotes) {
+                    ChapterNotesView(viewModel: viewModel)
+                }
             }
 
             Divider().frame(height: 20)

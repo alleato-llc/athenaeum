@@ -7,12 +7,20 @@ public struct SettingsView: View {
     @ObservedObject var viewModel: LibraryViewModel
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedTab: SettingsTab = .general
     @State private var libraryPath: String
     @State private var defaultFont: String
     @State private var useFontPairing: Bool
     @State private var fontPairingId: String
     @State private var lightThemeId: String
     @State private var darkThemeId: String
+    @State private var language: String
+
+    enum SettingsTab: Hashable {
+        case general
+        case reading
+        case libraryData
+    }
 
     init(viewModel: LibraryViewModel) {
         self.viewModel = viewModel
@@ -22,6 +30,7 @@ public struct SettingsView: View {
         _fontPairingId = State(initialValue: viewModel.settings.fontPairingId ?? FontPairing.defaultPairing.id)
         _lightThemeId = State(initialValue: viewModel.settings.lightThemeId)
         _darkThemeId = State(initialValue: viewModel.settings.darkThemeId)
+        _language = State(initialValue: viewModel.settings.language ?? "system")
     }
 
     private var activePairing: FontPairing? {
@@ -43,67 +52,27 @@ public struct SettingsView: View {
                 .font(.headline)
                 .padding()
 
-            Form {
-                Section(NSLocalizedString("settings.library", bundle: bundle, comment: "")) {
-                    HStack {
-                        TextField(NSLocalizedString("settings.library.path", bundle: bundle, comment: ""),
-                                 text: $libraryPath)
-                            .textFieldStyle(.roundedBorder)
-                        Button(NSLocalizedString("settings.library.browse", bundle: bundle, comment: "")) {
-                            browseLibraryPath()
-                        }
+            TabView(selection: $selectedTab) {
+                generalTab
+                    .tabItem {
+                        Label(NSLocalizedString("settings.tab.general", bundle: bundle, comment: ""),
+                              systemImage: "gearshape")
                     }
-                }
+                    .tag(SettingsTab.general)
 
-                Section(NSLocalizedString("settings.reading", bundle: bundle, comment: "")) {
-                    Toggle(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
-                           isOn: $useFontPairing)
-
-                    if useFontPairing {
-                        Picker(NSLocalizedString("settings.font.pairing.label", bundle: bundle, comment: ""),
-                               selection: $fontPairingId) {
-                            ForEach(FontPairing.pairings) { pairing in
-                                Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
-                                    .tag(pairing.id)
-                            }
-                        }
-                    } else {
-                        Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
-                               selection: $defaultFont) {
-                            ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                                Text(font).tag(font)
-                            }
-                        }
+                readingTab
+                    .tabItem {
+                        Label(NSLocalizedString("settings.tab.reading", bundle: bundle, comment: ""),
+                              systemImage: "book")
                     }
+                    .tag(SettingsTab.reading)
 
-                    Picker(NSLocalizedString("settings.theme.lightTheme", bundle: bundle, comment: ""),
-                           selection: $lightThemeId) {
-                        ForEach(ReadingTheme.lightThemes) { theme in
-                            Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
-                                .tag(theme.id)
-                        }
+                libraryDataTab
+                    .tabItem {
+                        Label(NSLocalizedString("settings.tab.library_data", bundle: bundle, comment: ""),
+                              systemImage: "archivebox")
                     }
-
-                    if let lightTheme = ReadingTheme.lightThemes.first(where: { $0.id == lightThemeId }) {
-                        ThemePreviewCard(theme: lightTheme,
-                                         headerFont: previewHeaderFont,
-                                         bodyFont: previewBodyFont)
-                    }
-
-                    Picker(NSLocalizedString("settings.theme.darkTheme", bundle: bundle, comment: ""),
-                           selection: $darkThemeId) {
-                        ForEach(ReadingTheme.darkThemes) { theme in
-                            Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
-                                .tag(theme.id)
-                        }
-                    }
-
-                    if let darkTheme = ReadingTheme.darkThemes.first(where: { $0.id == darkThemeId }) {
-                        ThemePreviewCard(theme: darkTheme,
-                                         headerFont: previewHeaderFont,
-                                         bodyFont: previewBodyFont)
-                    }
-                }
+                    .tag(SettingsTab.libraryData)
             }
             .padding()
 
@@ -123,6 +92,7 @@ public struct SettingsView: View {
                     viewModel.settings.fontPairingId = useFontPairing ? fontPairingId : nil
                     viewModel.settings.lightThemeId = lightThemeId
                     viewModel.settings.darkThemeId = darkThemeId
+                    viewModel.settings.language = language == "system" ? nil : language
                     viewModel.saveSettings()
                     dismiss()
                 }
@@ -130,7 +100,137 @@ public struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 500, height: 600)
+        .frame(width: 520, height: 520)
+    }
+
+    // MARK: - General Tab
+
+    @ViewBuilder
+    private var generalTab: some View {
+        Form {
+            Section(NSLocalizedString("settings.language", bundle: bundle, comment: "")) {
+                Picker(NSLocalizedString("settings.language", bundle: bundle, comment: ""),
+                       selection: $language) {
+                    ForEach(UserSettings.supportedLanguages, id: \.name) { lang in
+                        Text(lang.name).tag(lang.code ?? "system")
+                    }
+                }
+
+                if language != (viewModel.settings.language ?? "system") {
+                    Text(NSLocalizedString("settings.language.restart", bundle: bundle, comment: ""))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Section(NSLocalizedString("settings.library", bundle: bundle, comment: "")) {
+                HStack {
+                    TextField(NSLocalizedString("settings.library.path", bundle: bundle, comment: ""),
+                             text: $libraryPath)
+                        .textFieldStyle(.roundedBorder)
+                    Button(NSLocalizedString("settings.library.browse", bundle: bundle, comment: "")) {
+                        browseLibraryPath()
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Reading Tab
+
+    @ViewBuilder
+    private var readingTab: some View {
+        Form {
+            Section(NSLocalizedString("settings.reading", bundle: bundle, comment: "")) {
+                Toggle(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
+                       isOn: $useFontPairing)
+
+                if useFontPairing {
+                    Picker(NSLocalizedString("settings.font.pairing.label", bundle: bundle, comment: ""),
+                           selection: $fontPairingId) {
+                        ForEach(FontPairing.pairings) { pairing in
+                            Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
+                                .tag(pairing.id)
+                        }
+                    }
+                } else {
+                    Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
+                           selection: $defaultFont) {
+                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                            Text(font).tag(font)
+                        }
+                    }
+                }
+
+                Picker(NSLocalizedString("settings.theme.lightTheme", bundle: bundle, comment: ""),
+                       selection: $lightThemeId) {
+                    ForEach(ReadingTheme.lightThemes) { theme in
+                        Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
+                            .tag(theme.id)
+                    }
+                }
+
+                if let lightTheme = ReadingTheme.lightThemes.first(where: { $0.id == lightThemeId }) {
+                    ThemePreviewCard(theme: lightTheme,
+                                     headerFont: previewHeaderFont,
+                                     bodyFont: previewBodyFont)
+                }
+
+                Picker(NSLocalizedString("settings.theme.darkTheme", bundle: bundle, comment: ""),
+                       selection: $darkThemeId) {
+                    ForEach(ReadingTheme.darkThemes) { theme in
+                        Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
+                            .tag(theme.id)
+                    }
+                }
+
+                if let darkTheme = ReadingTheme.darkThemes.first(where: { $0.id == darkThemeId }) {
+                    ThemePreviewCard(theme: darkTheme,
+                                     headerFont: previewHeaderFont,
+                                     bodyFont: previewBodyFont)
+                }
+            }
+        }
+    }
+
+    // MARK: - Library Data Tab
+
+    @ViewBuilder
+    private var libraryDataTab: some View {
+        Form {
+            Section(NSLocalizedString("settings.data.export", bundle: bundle, comment: "")) {
+                Text(NSLocalizedString("settings.data.export.description", bundle: bundle, comment: ""))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Button(NSLocalizedString("settings.data.export.button", bundle: bundle, comment: "")) {
+                    viewModel.exportLibrary()
+                }
+            }
+
+            Section(NSLocalizedString("settings.data.import", bundle: bundle, comment: "")) {
+                Text(NSLocalizedString("settings.data.import.description", bundle: bundle, comment: ""))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Button(NSLocalizedString("settings.data.import.button", bundle: bundle, comment: "")) {
+                    viewModel.importLibrary()
+                }
+            }
+
+            Section(NSLocalizedString("settings.data.import_directory", bundle: bundle, comment: "")) {
+                Text(NSLocalizedString("settings.data.import_directory.description", bundle: bundle, comment: ""))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Button(NSLocalizedString("settings.data.import_directory.button", bundle: bundle, comment: "")) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        viewModel.importFromDirectory()
+                    }
+                }
+            }
+        }
     }
 
     private func browseLibraryPath() {

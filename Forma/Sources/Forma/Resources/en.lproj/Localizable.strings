@@ -17,5 +17,37 @@
 "of %d" = "of %d";
 "nav.mode.hint" = "Double-click to switch between Page and Chapter mode";
 
+/* Highlighter */
+"highlight.toggle" = "Highlighter";
+"highlight.mode" = "Highlight Mode";
+"highlight.color" = "Highlight Color";
+"highlight.color.yellow" = "Yellow";
+"highlight.color.green" = "Green";
+"highlight.color.blue" = "Blue";
+"highlight.color.pink" = "Pink";
+"highlight.color.orange" = "Orange";
+"highlight.eraser" = "Eraser";
+"highlight.eraseAll" = "Erase All on Page";
+"highlight.eraseAll.confirm" = "Remove all highlights on this page?";
+"highlight.eraseAll.yes" = "Erase All";
+"Cancel" = "Cancel";
+
+/* Bookmarks */
+"bookmark.toggle" = "Bookmarks";
+"bookmark.add" = "Add Bookmark";
+
+/* Notes */
+"notes.toggle" = "Notes";
+"notes.chapter" = "Chapter Notes";
+"notes.chapter.toggle" = "Chapter Notes";
+"notes.inlineMode" = "Inline Note Mode";
+"notes.noteColor" = "Note highlight color";
+"notes.addInline" = "Add Note";
+"notes.save" = "Save";
+"notes.edit" = "Edit";
+"notes.delete" = "Delete";
+"notes.delete.confirm" = "Delete this note?";
+"notes.dismiss" = "Done";
+
 /* Window title */
 "title.progress" = "Octavo | %d%% Complete";

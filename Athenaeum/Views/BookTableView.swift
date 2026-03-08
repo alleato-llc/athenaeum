@@ -46,6 +46,17 @@ public struct BookTableView: View {
                 }
                 .disabled(entry.book.format != .epub)
                 Divider()
+                Button(NSLocalizedString("library.copy", bundle: bundle, comment: "")) {
+                    viewModel.copyBookToClipboard(entry)
+                }
+                Button(NSLocalizedString("library.show_in_finder", bundle: bundle, comment: "")) {
+                    viewModel.showInFinder(entry)
+                }
+                Button(NSLocalizedString("library.review_notes", bundle: bundle, comment: "")) {
+                    viewModel.reviewNotes(entry)
+                }
+                .disabled(entry.book.format != .epub)
+                Divider()
                 Button(NSLocalizedString("library.delete", bundle: bundle, comment: ""), role: .destructive) {
                     viewModel.deleteBook(entry)
                 }

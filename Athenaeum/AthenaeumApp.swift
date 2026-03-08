@@ -25,6 +25,10 @@ struct AthenaeumApp: App {
                     let themeMode = info["themeMode"] as? ThemeMode ?? .system
                     let lightThemeId = info["lightThemeId"] as? String ?? "classic"
                     let darkThemeId = info["darkThemeId"] as? String ?? "charcoal"
+                    let highlights = info["highlights"] as? [Int: [Highlight]] ?? [:]
+                    let bookmarks = info["bookmarks"] as? [Bookmark] ?? []
+                    let chapterNotes = info["chapterNotes"] as? [Int: String] ?? [:]
+                    let inlineNotes = info["inlineNotes"] as? [Int: [InlineNote]] ?? [:]
                     BookWindowStore.shared.store(book, libraryBookId: libraryBookId,
                                                  lastChapterIndex: lastChapterIndex,
                                                  lastScrollPosition: lastScrollPosition,
@@ -32,8 +36,17 @@ struct AthenaeumApp: App {
                                                  fontPairingId: fontPairingId,
                                                  themeMode: themeMode,
                                                  lightThemeId: lightThemeId,
-                                                 darkThemeId: darkThemeId)
+                                                 darkThemeId: darkThemeId,
+                                                 highlights: highlights,
+                                                 bookmarks: bookmarks,
+                                                 chapterNotes: chapterNotes,
+                                                 inlineNotes: inlineNotes)
                     openWindow(id: "reader", value: book.id)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .openNotesReview)) { notification in
+                    guard let info = notification.userInfo,
+                          let bookId = info["bookId"] as? String else { return }
+                    openWindow(id: "notes", value: bookId)
                 }
         }
 
@@ -55,11 +68,23 @@ struct AthenaeumApp: App {
                            fontPairingId: entry.fontPairingId,
                            themeMode: entry.themeMode,
                            lightThemeId: entry.lightThemeId,
-                           darkThemeId: entry.darkThemeId)
+                           darkThemeId: entry.darkThemeId,
+                           highlights: entry.highlights,
+                           bookmarks: entry.bookmarks,
+                           chapterNotes: entry.chapterNotes,
+                           inlineNotes: entry.inlineNotes)
                     .frame(minWidth: 800, minHeight: 600)
             }
         }
         .defaultSize(width: 900, height: 700)
+
+        WindowGroup("Notes", id: "notes", for: String.self) { $bookId in
+            if let bookId, let entry = NotesWindowStore.shared.retrieve(bookId) {
+                ChapterNotesReviewView(entry: entry)
+                    .frame(minWidth: 600, minHeight: 400)
+            }
+        }
+        .defaultSize(width: 700, height: 500)
     }
 }
 
@@ -81,6 +106,10 @@ class BookWindowStore {
         let themeMode: ThemeMode
         let lightThemeId: String
         let darkThemeId: String
+        let highlights: [Int: [Highlight]]
+        let bookmarks: [Bookmark]
+        let chapterNotes: [Int: String]
+        let inlineNotes: [Int: [InlineNote]]
     }
 
     private var entries: [String: Entry] = [:]
@@ -89,7 +118,11 @@ class BookWindowStore {
                lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
                fontFamily: String = "Georgia", fontPairingId: String? = nil,
                themeMode: ThemeMode = .system, lightThemeId: String = "classic",
-               darkThemeId: String = "charcoal") {
+               darkThemeId: String = "charcoal",
+               highlights: [Int: [Highlight]] = [:],
+               bookmarks: [Bookmark] = [],
+               chapterNotes: [Int: String] = [:],
+               inlineNotes: [Int: [InlineNote]] = [:]) {
         entries[book.id] = Entry(book: book, libraryBookId: libraryBookId,
                                   lastChapterIndex: lastChapterIndex,
                                   lastScrollPosition: lastScrollPosition,
@@ -97,7 +130,32 @@ class BookWindowStore {
                                   fontPairingId: fontPairingId,
                                   themeMode: themeMode,
                                   lightThemeId: lightThemeId,
-                                  darkThemeId: darkThemeId)
+                                  darkThemeId: darkThemeId,
+                                  highlights: highlights,
+                                  bookmarks: bookmarks,
+                                  chapterNotes: chapterNotes,
+                                  inlineNotes: inlineNotes)
+    }
+
+    func retrieve(_ id: String) -> Entry? {
+        entries[id]
+    }
+}
+
+class NotesWindowStore {
+    static let shared = NotesWindowStore()
+
+    struct Entry {
+        let bookTitle: String
+        let chapters: [(index: Int, title: String)]
+        let chapterNotes: [Int: String]
+        let inlineNotes: [Int: [InlineNote]]
+    }
+
+    private var entries: [String: Entry] = [:]
+
+    func store(bookId: String, entry: Entry) {
+        entries[bookId] = entry
     }
 
     func retrieve(_ id: String) -> Entry? {

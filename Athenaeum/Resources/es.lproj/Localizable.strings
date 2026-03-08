@@ -13,6 +13,8 @@
 /* Library context menu */
 "library.edit_metadata" = "Editar Metadatos";
 "library.delete" = "Eliminar de la Biblioteca";
+"library.copy" = "Copiar";
+"library.show_in_finder" = "Mostrar en Finder";
 
 /* Library table columns */
 "library.column.title" = "Título";
@@ -35,10 +37,21 @@
 
 /* Settings */
 "settings.title" = "Configuración";
+"settings.tab.general" = "General";
+"settings.tab.reading" = "Lectura";
+"settings.tab.library_data" = "Datos de Biblioteca";
+"settings.language" = "Idioma";
+"settings.language.restart" = "Reinicia la app para aplicar el cambio de idioma.";
 "settings.library" = "Biblioteca";
 "settings.library.path" = "Ruta de la Biblioteca";
 "settings.library.browse" = "Examinar…";
 "settings.reading" = "Lectura";
+"settings.data.export" = "Exportar Biblioteca";
+"settings.data.export.description" = "Exporta tu biblioteca completa (libros, portadas y base de datos) a un solo archivo para respaldo o transferencia.";
+"settings.data.export.button" = "Exportar\U2026";
+"settings.data.import" = "Importar Biblioteca";
+"settings.data.import.description" = "Importa un archivo de biblioteca exportado previamente. Esto reemplazará tu biblioteca actual.";
+"settings.data.import.button" = "Importar\U2026";
 "settings.font" = "Fuente Predeterminada";
 "settings.font.pairing" = "Usar Combinación de Fuentes";
 "settings.font.pairing.label" = "Combinación de Fuentes";
@@ -74,6 +87,30 @@
 "export.status.cancelled" = "Cancelado";
 "export.cancel" = "Cancelar";
 "export.progress.chapter" = "Cap\U00EDtulo %d de %d";
+
+/* Notes review */
+"library.review_notes" = "Revisar Notas";
+"notes.review.empty" = "No hay notas para este libro";
+"notes.review.chapter_empty" = "No hay notas para este capítulo";
+"notes.review.section.chapter" = "Notas del Capítulo";
+"notes.review.section.inline" = "Notas en Línea";
+
+/* Import from Directory */
+"settings.data.import_directory" = "Importar desde Directorio";
+"settings.data.import_directory.description" = "Escanea recursivamente un directorio en busca de archivos EPUB e imp\U00F3rtalos a tu biblioteca.";
+"settings.data.import_directory.button" = "Importar desde Directorio\U2026";
+"import.directory.title" = "Seleccionar Directorio para Importar";
+"import.directory.scanning" = "Buscando libros\U2026";
+"import.directory.progress" = "Importando %d de %d\U2026";
+"import.directory.summary" = "%d EPUBs importados, %d otros archivos omitidos";
+"import.directory.summary.failed" = "%d fallidos";
+"import.directory.failed_section" = "Importaciones Fallidas";
+"import.directory.skipped_section" = "Archivos Omitidos";
+"import.directory.column.filename" = "Nombre de Archivo";
+"import.directory.column.format" = "Formato";
+"import.directory.column.path" = "Ruta";
+"import.directory.column.reason" = "Raz\U00F3n";
+"import.directory.done" = "Listo";
 
 /* Import errors */
 "import.error.duplicate" = "Un libro titulado \"%@\" del mismo autor ya existe en tu biblioteca.";
