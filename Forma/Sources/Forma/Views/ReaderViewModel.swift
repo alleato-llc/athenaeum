@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import WebKit
+import Ligature
 
 public enum NavigationMode {
     case page

@@ -10,6 +10,8 @@ options:
 packages:
   Ligature:
     path: Ligature
+  Forma:
+    path: Forma
 
 targets:
   Athenaeum:
@@ -21,7 +23,7 @@ targets:
           - Info.plist
           - "*.entitlements"
     dependencies:
-      - package: Ligature
+      - package: Forma
     info:
       path: Athenaeum/Info.plist
       properties:
@@ -69,7 +71,7 @@ targets:
           - Info.plist
           - "*.entitlements"
     dependencies:
-      - package: Ligature
+      - package: Forma
     info:
       path: Octavo/Info.plist
       properties:

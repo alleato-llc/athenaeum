@@ -6,20 +6,21 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.macOS(.v13)],
     dependencies: [
-        .package(path: "Ligature")
+        .package(path: "Forma")
     ],
     targets: [
         .executableTarget(
             name: "Octavo",
-            dependencies: ["Ligature"],
+            dependencies: ["Forma"],
             path: "Octavo",
             resources: [.process("Resources")]
         ),
         .executableTarget(
             name: "Athenaeum",
-            dependencies: ["Ligature"],
+            dependencies: ["Forma"],
             path: "Athenaeum",
-            resources: [.process("Resources")]
+            resources: [.process("Resources")],
+            linkerSettings: [.linkedLibrary("sqlite3")]
         )
     ]
 )

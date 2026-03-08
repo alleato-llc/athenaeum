@@ -1,0 +1,14 @@
+/* Reader toolbar */
+"Toggle sidebar" = "Alternar barra lateral";
+"Font" = "Fuente";
+
+/* Reader navigation */
+"Previous" = "Anterior";
+"Next" = "Siguiente";
+"Page" = "Página";
+"Chapter" = "Capítulo";
+"of %d" = "de %d";
+"nav.mode.hint" = "Doble clic para cambiar entre modo Página y Capítulo";
+
+/* Window title */
+"title.progress" = "Octavo | %d%% Completado";

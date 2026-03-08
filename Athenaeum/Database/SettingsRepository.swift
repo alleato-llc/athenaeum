@@ -1,5 +1,6 @@
 import Foundation
 import SQLite3
+import Ligature
 
 public class SettingsRepository {
     private let db: LibraryDatabase
@@ -35,12 +36,10 @@ public class SettingsRepository {
         let libraryPath = try get("libraryPath") ?? UserSettings.defaultLibraryPath
         let defaultFont = try get("defaultFont") ?? "Georgia"
 
-        // Migration: map old "defaultTheme" to new themeMode if needed
         let themeMode: ThemeMode
         if let themeModeStr = try get("themeMode") {
             themeMode = ThemeMode(rawValue: themeModeStr) ?? .system
         } else if let oldTheme = try get("defaultTheme") {
-            // Migrate old binary theme to new themeMode
             themeMode = oldTheme == "dark" ? .dark : .light
         } else {
             themeMode = .system

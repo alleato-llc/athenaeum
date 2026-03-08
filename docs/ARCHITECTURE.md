@@ -2,7 +2,7 @@
 
 ## Overview
 
-Athenaeum is structured as a Swift Package with two executable targets and one shared library:
+Athenaeum is structured as a Swift Package with two executable targets and two shared libraries:
 
 ```
 ┌──────────────┐     ┌──────────────┐
@@ -13,14 +13,23 @@ Athenaeum is structured as a Swift Package with two executable targets and one s
        └────────┬───────────┘
                 │
        ┌────────▼────────┐
+       │      Forma       │
+       │  (shared UI)     │
+       └────────┬─────────┘
+                │
+       ┌────────▼────────┐
        │    Ligature      │
-       │ (shared library) │
+       │   (backend)      │
        └─────────────────┘
 ```
 
-Both apps depend on **Ligature**, which contains all EPUB parsing logic and reader UI components.
+Both apps depend on **Forma** (shared UI: reader views, theme management), which depends on **Ligature** (backend: EPUB parsing, core models). Forma re-exports Ligature via `@_exported import`, so consumers only need `import Forma`.
+
+SQLite is linked only by the **Athenaeum** target, which contains all library-specific code (database, import pipeline, library views).
 
 ## Ligature
+
+Backend library containing EPUB parsing and core models. No UI dependencies.
 
 ### Models
 
@@ -31,6 +40,10 @@ Both apps depend on **Ligature**, which contains all EPUB parsing logic and read
 - `baseURL: URL` — Path to the extracted EPUB content on disk
 
 **`EPUBMetadata`** — Extended metadata parsed from the OPF file, including publisher, description, identifier, and EPUB version (2.0 or 3.0).
+
+**`ReadingTheme`** — Named theme palettes (5 light, 5 dark) with colors for background, text, links, and code blocks. Also defines available font families.
+
+**`ThemeMode`** — Enum (`light`, `dark`, `system`) used by both apps for theme selection.
 
 ### Parsing Pipeline
 
@@ -61,12 +74,24 @@ TOCParser                     Parses the table of contents:
 
 All XML parsing uses Foundation's `XMLParser` (SAX-style). No third-party XML libraries are used.
 
+### Notifications
+
+Shared `Notification.Name` extensions (`Notifications.swift`) for cross-module communication:
+- `.openBook` — Athenaeum posts when a user opens a book from the library
+- `.addBooks` — Menu command triggers the file picker
+- `.saveReadingProgress` — Reader posts to persist chapter/scroll position
+
+## Forma
+
+Shared UI library containing the reader interface and theme management. Depends on Ligature.
+
 ### Views
 
 **`ReaderView`** — Main reader layout. Composes all sub-views:
 - Progress bar at the top
-- Collapsible TOC sidebar (left)
+- Collapsible TOC sidebar (left) with full-width click targets
 - Content area with auto-hiding toolbar and navigation bar overlays
+- Cmd+/- keyboard shortcuts for page zoom
 
 **`ReaderToolbarView`** — Top toolbar (auto-hides). Controls:
 - Sidebar toggle
@@ -112,9 +137,21 @@ The app ships with 10 named theme palettes (5 light, 5 dark) defined in `Reading
 - **Dark** — uses the selected dark theme
 - **System** — follows macOS appearance, switching automatically via KVO on `NSApp.effectiveAppearance`
 
-### Import Validation
+## Athenaeum-Specific Components
+
+The Athenaeum target contains all library-specific code that is not shared with Octavo.
+
+### Database
+
+SQLite via the C API (`libsqlite3`), linked in the root `Package.swift` for the Athenaeum target only. See [DATABASE.md](DATABASE.md) for schema and storage details.
+
+### Import Pipeline
 
 `BookImporter` checks for duplicate books before copying files to the library. A book is considered a duplicate if another book with the same title and author(s) already exists (case-insensitive match via `BookRepository.bookExists`). Duplicate detection happens at the service layer — no UI changes are needed since `LibraryViewModel` already surfaces import errors.
+
+### Library Views
+
+Library-specific views (`LibraryView`, `BookGridView`, `BookTableView`, `BookEditView`, `SettingsView`) and their view model (`LibraryViewModel`) live in the Athenaeum target. These handle import, search, metadata editing, cover zoom, and settings.
 
 ## Xcode Project
 
@@ -130,12 +167,12 @@ Both app targets are configured for App Store distribution:
 
 ### Octavo (Reader)
 
-Entry point: `OctavoApp.swift`
+Entry point: `Octavo/OctavoApp.swift`
 
-Presents a landing screen with a file picker button and drag-and-drop support. When an EPUB file is opened, it uses `EPUBParser` to parse the file and presents `ReaderView` from Ligature.
+Presents a landing screen with a file picker button and drag-and-drop support. When an EPUB file is opened, it uses `EPUBParser` from Ligature to parse the file and presents `ReaderView` from Forma.
 
 ### Athenaeum (Library)
 
-Entry point: `AthenaeumApp.swift`
+Entry point: `Athenaeum/AthenaeumApp.swift`
 
 Personal book catalog. Import, browse, search, and manage EPUB books. Opens books in the reader via `NotificationCenter`. Uses SQLite for persistent storage — see [DATABASE.md](DATABASE.md) for schema and storage details, and [LIBRARY.md](LIBRARY.md) for the full feature guide.

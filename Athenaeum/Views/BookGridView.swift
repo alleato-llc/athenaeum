@@ -4,13 +4,19 @@ private let bundle = Bundle.module
 
 public struct BookGridView: View {
     @ObservedObject var viewModel: LibraryViewModel
-    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)]
+
+    private var columns: [GridItem] {
+        let minWidth = 150 * viewModel.coverScale
+        let maxWidth = 200 * viewModel.coverScale
+        return [GridItem(.adaptive(minimum: minWidth, maximum: maxWidth), spacing: 20)]
+    }
 
     public var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(viewModel.books) { entry in
-                    BookGridItem(entry: entry, isSelected: viewModel.selectedBookId == entry.id)
+                    BookGridItem(entry: entry, isSelected: viewModel.selectedBookId == entry.id,
+                                 scale: viewModel.coverScale)
                         .onTapGesture(count: 2) {
                             viewModel.openBook(entry)
                         }
@@ -41,11 +47,12 @@ public struct BookGridView: View {
 struct BookGridItem: View {
     let entry: BookEntry
     var isSelected: Bool = false
+    var scale: Double = 1.0
 
     var body: some View {
         VStack(spacing: 8) {
             BookCoverImage(coverPath: entry.book.coverPath)
-                .frame(width: 120, height: 170)
+                .frame(width: 120 * scale, height: 170 * scale)
                 .cornerRadius(4)
                 .shadow(radius: 3)
 
@@ -60,7 +67,7 @@ struct BookGridItem: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
         }
-        .frame(width: 150)
+        .frame(width: 150 * scale)
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 8)

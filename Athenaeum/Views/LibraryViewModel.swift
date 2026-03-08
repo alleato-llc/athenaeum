@@ -1,5 +1,7 @@
 import Foundation
 import AppKit
+import SwiftUI
+import Forma
 
 public enum LibraryViewMode {
     case grid
@@ -24,6 +26,8 @@ public class LibraryViewModel: ObservableObject {
     @Published public var settings: UserSettings
     @Published public var editingBook: BookEntry?
     @Published public var selectedBookId: String?
+    @Published public var coverScale: Double = 1.0
+    public weak var window: NSWindow?
 
     private let bookRepository: BookRepository
     private let settingsRepository: SettingsRepository
@@ -44,7 +48,6 @@ public class LibraryViewModel: ObservableObject {
             self.bookImporter = BookImporter(bookRepository: bookRepository,
                                              libraryPath: loadedSettings.libraryPath)
         } catch {
-            // If database fails, create an in-memory fallback
             fatalError("Failed to initialize library database: \(error.localizedDescription)")
         }
 
@@ -58,7 +61,6 @@ public class LibraryViewModel: ObservableObject {
                   let scrollPosition = info["scrollPosition"] as? Double else { return }
             try? self.bookRepository.saveProgress(bookId: bookId, chapterIndex: chapterIndex,
                                                    scrollPosition: scrollPosition)
-            // Update in-memory model so next openBook uses the saved position
             if let index = self.books.firstIndex(where: { $0.id == bookId }) {
                 self.books[index].book.readingPosition = ReadingPosition(chapter: chapterIndex, scroll: scrollPosition)
             }
@@ -115,7 +117,6 @@ public class LibraryViewModel: ObservableObject {
             if let index = books.firstIndex(where: { $0.id == bookId }) {
                 books[index].book.coverPath = newPath
             }
-            // Update in database
             if let entry = books.first(where: { $0.id == bookId }) {
                 try bookRepository.update(book: entry.book, authors: entry.authors)
             }
@@ -165,10 +166,4 @@ public class LibraryViewModel: ObservableObject {
             errorMessage = "Failed to open: \(error.localizedDescription)"
         }
     }
-}
-
-public extension Notification.Name {
-    static let openBook = Notification.Name("com.athenaeum.openBook")
-    static let addBooks = Notification.Name("com.athenaeum.addBooks")
-    static let saveReadingProgress = Notification.Name("com.athenaeum.saveReadingProgress")
 }

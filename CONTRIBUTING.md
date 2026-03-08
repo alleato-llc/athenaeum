@@ -25,17 +25,18 @@ swift run Octavo     # Run the reader to test changes
 
 ## Project Layout
 
-- **Athenaeum/** — Library app entry point
+- **Athenaeum/** — Library app (database, import pipeline, library views)
 - **Octavo/** — Reader app entry point
-- **Ligature/** — Shared library (models, parsers, views)
+- **Forma/** — Shared UI library (reader views, theme management)
+- **Ligature/** — Shared backend library (EPUB parsing, core models)
 
-Most changes will be in the `Ligature/` package. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+Both apps depend on Forma, which depends on Ligature. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Guidelines
 
 - Keep the project dependency-free. Prefer Foundation and system frameworks.
 - Use Swift conventions: camelCase for variables/functions, PascalCase for types.
-- All public API in Ligature should have `public` access control.
+- All public API in Ligature and Forma should have `public` access control.
 - Test your changes with various EPUB 2 and EPUB 3 files before submitting.
 
 ## Reporting Issues

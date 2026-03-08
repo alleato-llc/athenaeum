@@ -1,9 +1,11 @@
 import Foundation
 
-class ContainerXMLParser: NSObject, XMLParserDelegate {
+public class ContainerXMLParser: NSObject, XMLParserDelegate {
     private var opfPath: String?
 
-    func parse(data: Data) throws -> String {
+    public override init() { super.init() }
+
+    public func parse(data: Data) throws -> String {
         let parser = XMLParser(data: data)
         parser.delegate = self
         parser.parse()
@@ -14,7 +16,7 @@ class ContainerXMLParser: NSObject, XMLParserDelegate {
         return path
     }
 
-    func parser(_ parser: XMLParser, didStartElement elementName: String,
+    public func parser(_ parser: XMLParser, didStartElement elementName: String,
                 namespaceURI: String?, qualifiedName: String?,
                 attributes: [String: String]) {
         if elementName == "rootfile" || elementName.hasSuffix(":rootfile") {

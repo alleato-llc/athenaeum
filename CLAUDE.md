@@ -4,11 +4,19 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 
 ## Project Structure
 
-Swift Package (swift-tools-version 5.9, macOS 13+) with two app targets and one shared library:
+Swift Package (swift-tools-version 5.9, macOS 13+) with two app targets and two shared libraries:
 
-- **Athenaeum** (`Athenaeum/AthenaeumApp.swift`) — Library/catalog app. Import, browse, and manage books. Bundle ID: `com.alleato.athenaeum`.
+- **Athenaeum** (`Athenaeum/`) — Library/catalog app. Import, browse, and manage books. Bundle ID: `com.alleato.athenaeum`.
 - **Octavo** (`Octavo/OctavoApp.swift`) — EPUB reader app. Opens `.epub` files via file picker or drag-and-drop. Bundle ID: `com.alleato.octavo`.
-- **Ligature** (`Ligature/`) — Shared library: EPUB parsing, reader UI, and view models.
+- **Forma** (`Forma/`) — Shared UI library: reader views, theme management. Depends on Ligature.
+- **Ligature** (`Ligature/`) — Shared backend library: EPUB parsing, core models. No UI dependencies.
+
+### Dependency Graph
+
+```
+Athenaeum ──▶ Forma ──▶ Ligature
+Octavo   ──▶ Forma ──▶ Ligature
+```
 
 ### Xcode Project
 
@@ -23,15 +31,46 @@ The `.xcodeproj` is gitignored — always regenerate from `project.yml`. Both ap
 
 ### Ligature Layout
 
+Common backend — no UI frameworks, no SQLite.
+
 ```
 Ligature/Sources/Ligature/
 ├── Models/
 │   ├── EPUBBook.swift          # Runtime model for reader (title, author, spine, TOC)
 │   ├── EPUBMetadata.swift      # Metadata with EPUB 2/3 version enum
-│   ├── LibraryBook.swift       # Persistent model (metadata, format, identifiers JSON)
-│   ├── Author.swift            # Author model (many-to-many with books)
-│   ├── UserSettings.swift      # Settings: library path, font, theme mode, theme IDs
-│   └── ReadingTheme.swift      # Named theme palettes (light/dark), available fonts
+│   ├── ReadingTheme.swift      # Named theme palettes (light/dark), available fonts
+│   └── ThemeMode.swift         # Light/dark/system enum
+├── Parser/
+│   ├── EPUBParser.swift        # Top-level: extract zip, parse OPF, build EPUBBook
+│   ├── ContainerXMLParser.swift
+│   ├── OPFParser.swift
+│   └── TOCParser.swift         # EPUB2 (NCX) and EPUB3 (nav) parsers
+└── Notifications.swift         # Shared notification names
+```
+
+### Forma Layout
+
+Common UI — reader views shared by both apps.
+
+```
+Forma/Sources/Forma/
+├── Views/
+│   ├── ReaderView.swift        # Reader: sidebar, auto-hiding toolbar/nav bar
+│   ├── ReaderViewModel.swift   # Chapter nav, font/zoom, page counting
+│   ├── ThemeManager.swift      # Theme resolution, CSS injection, system appearance KVO
+│   └── EPUBWebView.swift       # WKWebView wrapper for rendering chapters
+├── Exports.swift               # @_exported import Ligature
+└── Resources/
+    └── {en,es,it}.lproj/       # Reader localized strings
+```
+
+### Athenaeum Layout
+
+Library app — database, import pipeline, library UI. Links `libsqlite3`.
+
+```
+Athenaeum/
+├── AthenaeumApp.swift          # App entry point, window management
 ├── Database/
 │   ├── LibraryDatabase.swift   # SQLite connection, migrations
 │   ├── BookRepository.swift    # CRUD for books + authors, search
@@ -40,16 +79,11 @@ Ligature/Sources/Ligature/
 │   ├── BookImporter.swift      # Orchestrates: copy file, extract metadata/cover, insert
 │   ├── MetadataExtractor.swift # Protocol + EPUB extractor + fallback
 │   └── CoverExtractor.swift    # Protocol + EPUB cover extractor
-├── Parser/
-│   ├── EPUBParser.swift        # Top-level: extract zip, parse OPF, build EPUBBook
-│   ├── ContainerXMLParser.swift
-│   ├── OPFParser.swift
-│   └── TOCParser.swift         # EPUB2 (NCX) and EPUB3 (nav) parsers
+├── Models/
+│   ├── LibraryBook.swift       # Persistent model (metadata, format, identifiers JSON)
+│   ├── Author.swift            # Author model (many-to-many with books)
+│   └── UserSettings.swift      # Settings: library path, font, theme mode, theme IDs
 ├── Views/
-│   ├── ReaderView.swift        # Reader: sidebar, auto-hiding toolbar/nav bar
-│   ├── ReaderViewModel.swift   # Chapter nav, font/zoom, page counting
-│   ├── ThemeManager.swift      # Theme resolution, CSS injection, system appearance KVO
-│   ├── EPUBWebView.swift       # WKWebView wrapper for rendering chapters
 │   ├── LibraryView.swift       # Library: toolbar, empty state, drag-and-drop
 │   ├── LibraryViewModel.swift  # Library business logic: import, delete, search
 │   ├── BookGridView.swift      # Scrollable grid of cover thumbnails
@@ -57,7 +91,7 @@ Ligature/Sources/Ligature/
 │   ├── BookEditView.swift      # Metadata edit sheet with cover replacement
 │   └── SettingsView.swift      # Settings: library path, font, theme
 └── Resources/
-    └── {en,es,it}.lproj/       # Localized strings
+    └── {en,es,it}.lproj/       # Library localized strings
 ```
 
 ## Build & Run
@@ -83,6 +117,7 @@ swift run Athenaeum    # Run the library app
 - Chapter content rendered in `WKWebView` with local file access enabled.
 - Styling injected via JavaScript: font family forced with `* { font-family: inherit !important }`.
 - Page zoom via `WKWebView.pageZoom` (single unified zoom, no separate font size control).
+- Keyboard zoom: Cmd+/- adjusts reader zoom (Octavo) or cover size (Athenaeum library).
 - EPUB 2 (NCX) and EPUB 3 (nav) TOC supported, with EPUB 3 falling back to NCX.
 - Toolbar and navigation bar auto-hide, revealed on hover at top/bottom edges.
 - Keyboard navigation: left/right arrow keys navigate by page or chapter depending on mode.
@@ -90,7 +125,7 @@ swift run Athenaeum    # Run the library app
 - Global page count computed via background `WKWebView` measurement of all chapters.
 - Window title bar shows reading progress percentage (e.g., "Octavo | 42% Complete").
 - All XML parsing uses Foundation `XMLParser` (SAX-style).
-- SQLite via C API (`libsqlite3`), linked in Ligature's Package.swift. No ORM.
+- SQLite via C API (`libsqlite3`), linked in Athenaeum's Package.swift target. No ORM.
 - Library data stored at `~/Library/Application Support/Athenaeum/` (library.db, books/, covers/).
 - No business logic in views — views delegate to view models and services.
 - Zero external dependencies.
@@ -109,9 +144,11 @@ These rules must be followed in all code changes:
 
 5. **Service-layer validation.** Input validation and duplicate checks happen in service/repository layers, not in views or view models.
 
+6. **Module boundaries.** Ligature contains only backend code (parser, models) with no UI dependencies. Forma contains shared UI (reader). Library-specific code (database, import, library views) lives in Athenaeum.
+
 ## Localization
 
-The app is localized for English, Spanish, and Italian using `.strings` files. Each target (Ligature, Octavo, Athenaeum) has its own localization resources under a `Resources/` directory.
+The app is localized for English, Spanish, and Italian using `.strings` files. Each target (Forma, Octavo, Athenaeum) has its own localization resources under a `Resources/` directory.
 
 See [docs/LOCALIZATION.md](docs/LOCALIZATION.md) for details on adding languages and strings.
 

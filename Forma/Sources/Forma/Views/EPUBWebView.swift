@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import Ligature
 
 public struct EPUBWebView: NSViewRepresentable {
     @ObservedObject var viewModel: ReaderViewModel

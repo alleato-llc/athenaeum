@@ -86,7 +86,6 @@ public class BookRepository {
 
     public func bookExists(title: String, authorNames: [String]) throws -> Bool {
         if authorNames.isEmpty {
-            // Check for a book with this title that has no authors
             let stmt = try db.prepareStatement("""
                 SELECT COUNT(*) FROM books b
                 WHERE LOWER(b.title) = LOWER(?)
@@ -98,7 +97,6 @@ public class BookRepository {
             return sqlite3_column_int(stmt, 0) > 0
         }
 
-        // Build placeholders for author names
         let placeholders = authorNames.map { _ in "LOWER(?)" }.joined(separator: ", ")
         let sql = """
             SELECT COUNT(*) FROM books b
@@ -199,7 +197,6 @@ public class BookRepository {
     }
 
     private func insertAuthorLink(bookId: String, author: Author) throws {
-        // Upsert the author
         let upsertStmt = try db.prepareStatement("""
             INSERT INTO authors (id, name) VALUES (?, ?)
             ON CONFLICT(name) DO UPDATE SET name=excluded.name
@@ -214,7 +211,6 @@ public class BookRepository {
             authorId = String(cString: sqlite3_column_text(upsertStmt, 0))
         }
 
-        // Link book to author
         let linkStmt = try db.prepareStatement("""
             INSERT OR IGNORE INTO book_authors (book_id, author_id) VALUES (?, ?);
             """)

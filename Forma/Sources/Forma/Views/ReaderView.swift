@@ -1,4 +1,5 @@
 import SwiftUI
+import Ligature
 
 private let bundle = Bundle.module
 
@@ -101,6 +102,18 @@ public struct ReaderView: View {
     private func setupKeyboardHandling() {
         guard eventMonitor == nil else { return }
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.modifierFlags.contains(.command) {
+                switch event.keyCode {
+                case 24: // Cmd+=
+                    viewModel.zoomIn()
+                    return nil
+                case 27: // Cmd+-
+                    viewModel.zoomOut()
+                    return nil
+                default:
+                    break
+                }
+            }
             switch event.keyCode {
             case 123:
                 viewModel.navigateBackward()
@@ -142,8 +155,10 @@ struct TOCEntryRow: View {
 
     var body: some View {
         if entry.children.isEmpty {
-            Button(entry.title) {
-                onSelect(entry.href)
+            Button(action: { onSelect(entry.href) }) {
+                Text(entry.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         } else {
@@ -152,10 +167,10 @@ struct TOCEntryRow: View {
                     TOCEntryRow(entry: entry.children[index], onSelect: onSelect)
                 }
             } label: {
-                Button(entry.title) {
-                    onSelect(entry.href)
-                }
-                .buttonStyle(.plain)
+                Text(entry.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onSelect(entry.href) }
             }
         }
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import Forma
 
 private let bundle = Bundle.module
 
@@ -48,23 +49,25 @@ public struct SettingsView: View {
                     Picker(NSLocalizedString("settings.theme.lightTheme", bundle: bundle, comment: ""),
                            selection: $lightThemeId) {
                         ForEach(ReadingTheme.lightThemes) { theme in
-                            HStack {
-                                ThemePreviewSwatch(theme: theme)
-                                Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
-                            }
-                            .tag(theme.id)
+                            Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
+                                .tag(theme.id)
                         }
+                    }
+
+                    if let lightTheme = ReadingTheme.lightThemes.first(where: { $0.id == lightThemeId }) {
+                        ThemePreviewCard(theme: lightTheme)
                     }
 
                     Picker(NSLocalizedString("settings.theme.darkTheme", bundle: bundle, comment: ""),
                            selection: $darkThemeId) {
                         ForEach(ReadingTheme.darkThemes) { theme in
-                            HStack {
-                                ThemePreviewSwatch(theme: theme)
-                                Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
-                            }
-                            .tag(theme.id)
+                            Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
+                                .tag(theme.id)
                         }
+                    }
+
+                    if let darkTheme = ReadingTheme.darkThemes.first(where: { $0.id == darkThemeId }) {
+                        ThemePreviewCard(theme: darkTheme)
                     }
                 }
             }
@@ -92,7 +95,7 @@ public struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 450, height: 450)
+        .frame(width: 500, height: 600)
     }
 
     private func browseLibraryPath() {
@@ -107,28 +110,44 @@ public struct SettingsView: View {
     }
 }
 
-private struct ThemePreviewSwatch: View {
+private struct ThemePreviewCard: View {
     let theme: ReadingTheme
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color(hex: theme.backgroundColor))
-                .frame(width: 40, height: 24)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .strokeBorder(Color.gray.opacity(0.3), lineWidth: 0.5)
-                )
+        VStack(alignment: .leading, spacing: 6) {
+            Text(NSLocalizedString(theme.name, bundle: bundle, comment: ""))
+                .font(.system(size: 13))
+                .fontWeight(.semibold)
+                .foregroundColor(Color(hex: theme.textColor))
 
-            HStack(spacing: 2) {
-                Text("Aa")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(Color(hex: theme.textColor))
-                Circle()
-                    .fill(Color(hex: theme.linkColor))
-                    .frame(width: 5, height: 5)
-            }
+            Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: theme.textColor))
+
+            Text("Read more")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: theme.linkColor))
+
+            Text("let x = 42")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(Color(hex: theme.textColor))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(hex: theme.codeBackgroundColor))
+                )
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: theme.backgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 0.5)
+        )
     }
 }
 

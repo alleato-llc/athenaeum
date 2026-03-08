@@ -68,16 +68,22 @@ Click the gear icon in the toolbar to open Settings:
 
 ### Source Files
 
-**Models** (`Ligature/Sources/Ligature/Models/`)
+**Models** (`Athenaeum/Models/`)
 
 | File | Purpose |
 |------|---------|
 | `LibraryBook.swift` | Book model: metadata, format, file paths, JSON identifiers |
 | `Author.swift` | Author model with unique name constraint |
 | `UserSettings.swift` | Settings model: library path, font, theme mode, theme IDs |
-| `ReadingTheme.swift` | Named theme palettes (light/dark), available fonts |
 
-**Import** (`Ligature/Sources/Ligature/Import/`)
+**Shared Models** (`Ligature/Sources/Ligature/Models/`)
+
+| File | Purpose |
+|------|---------|
+| `ReadingTheme.swift` | Named theme palettes (light/dark), available fonts |
+| `ThemeMode.swift` | Theme mode enum (light/dark/system) |
+
+**Import** (`Athenaeum/Import/`)
 
 | File | Purpose |
 |------|---------|
@@ -85,17 +91,25 @@ Click the gear icon in the toolbar to open Settings:
 | `MetadataExtractor.swift` | Protocol + `EPUBMetadataExtractor` + `FallbackMetadataExtractor` |
 | `CoverExtractor.swift` | Protocol + `EPUBCoverExtractor` (finds cover from OPF manifest) |
 
-**Views** (`Ligature/Sources/Ligature/Views/`)
+**Views** (`Athenaeum/Views/`)
 
 | File | Purpose |
 |------|---------|
-| `LibraryView.swift` | Main library layout: toolbar, empty state, drag-and-drop |
+| `LibraryView.swift` | Main library layout: toolbar, empty state, drag-and-drop, cover zoom |
 | `LibraryViewModel.swift` | Business logic: import, delete, update, search, open book |
 | `BookGridView.swift` | Scrollable grid of cover thumbnails with context menus |
 | `BookTableView.swift` | Table view with title, author, year, format, genre columns |
 | `BookEditView.swift` | Metadata edit sheet with cover art replacement |
 | `SettingsView.swift` | Settings sheet: library path, font, light/dark theme pickers with previews |
+
+**Reader UI** (`Forma/Sources/Forma/Views/`)
+
+| File | Purpose |
+|------|---------|
+| `ReaderView.swift` | Reader layout: sidebar, toolbar, navigation, zoom shortcuts |
+| `ReaderViewModel.swift` | Chapter navigation, font/zoom, page counting |
 | `ThemeManager.swift` | Theme resolution, CSS injection, system appearance KVO |
+| `EPUBWebView.swift` | WKWebView wrapper for rendering chapters |
 
 **App Entry** (`Athenaeum/`)
 

@@ -1,4 +1,5 @@
 import Foundation
+import Ligature
 
 public struct ExtractedMetadata {
     public var title: String
@@ -35,7 +36,6 @@ public class EPUBMetadataExtractor: MetadataExtractor {
 
         var identifiers: [String: String] = [:]
 
-        // Extract identifiers from the OPF metadata
         let extractedURL = book.extractedURL
         defer { book.cleanup() }
 

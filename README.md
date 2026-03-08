@@ -3,7 +3,6 @@
 A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero external dependencies.
 
 ![Library](./docs/photos/library.png)
-![Reader](./docs/photos/reader.png)
 
 ## Apps
 
@@ -22,6 +21,8 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 - Reading progress indicator with per-chapter page counting
 - Scroll position memory across chapters
 
+![Reader](./docs/photos/reader.png)
+
 ### Library
 - Import EPUBs with automatic metadata and cover extraction
 - Duplicate import prevention (same title + author)
@@ -30,6 +31,8 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 - Edit metadata and replace cover art
 - Configurable default light and dark themes with color previews
 - Localized for English, Spanish, and Italian
+
+![Settings](./docs/photos/settings.png)
 
 ## Requirements
 
@@ -59,12 +62,22 @@ swift run Athenaeum    # Run the library app
 ```
 Athenaeum/       # Library app (com.alleato.athenaeum)
 Octavo/          # EPUB reader app (com.alleato.octavo)
-Ligature/        # Shared library: EPUB parsing, reader UI, and view models
+Forma/          # Shared UI library: reader views, theme management
+Ligature/        # Shared backend library: EPUB parsing, core models
 docs/            # Documentation
 project.yml      # Xcode project spec (xcodegen)
 ```
 
+Both app targets depend on **Forma**, which depends on **Ligature**. SQLite is linked only by the Athenaeum target.
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+
+## Naming
+
+- **Athenaeum** — from the Latin *athenaeum*, a place for reading and scholarly pursuit. The library/catalog app.
+- **Octavo** — a traditional book size format where pages are folded into eighths. The standalone EPUB reader.
+- **Forma** — Latin for form or shape. The shared UI layer giving visual form to the reading experience.
+- **Ligature** — a typographic term for joined characters. The shared backend library connecting both apps.
 
 ## Contributing
 

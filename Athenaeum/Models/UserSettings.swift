@@ -1,10 +1,5 @@
 import Foundation
-
-public enum ThemeMode: String {
-    case light
-    case dark
-    case system
-}
+import Ligature
 
 public struct UserSettings {
     public var libraryPath: String

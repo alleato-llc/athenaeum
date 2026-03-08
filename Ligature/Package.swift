@@ -9,8 +9,6 @@ let package = Package(
         .library(name: "Ligature", targets: ["Ligature"])
     ],
     targets: [
-        .target(name: "Ligature", path: "Sources/Ligature",
-                resources: [.process("Resources")],
-                linkerSettings: [.linkedLibrary("sqlite3")])
+        .target(name: "Ligature", path: "Sources/Ligature")
     ]
 )

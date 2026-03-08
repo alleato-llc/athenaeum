@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Ligature
 
 public protocol CoverExtractor {
     func extractCover(from url: URL, to destinationPath: String) throws -> Bool
@@ -14,7 +15,6 @@ public class EPUBCoverExtractor: CoverExtractor {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        // Extract EPUB
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-o", url.path, "-d", tempDir.path]
@@ -25,7 +25,6 @@ public class EPUBCoverExtractor: CoverExtractor {
 
         guard process.terminationStatus == 0 else { return false }
 
-        // Find OPF
         let containerURL = tempDir
             .appendingPathComponent("META-INF")
             .appendingPathComponent("container.xml")
@@ -37,18 +36,16 @@ public class EPUBCoverExtractor: CoverExtractor {
         let opfDirectory = opfURL.deletingLastPathComponent()
         guard let opfData = try? Data(contentsOf: opfURL) else { return false }
 
-        // Parse OPF for cover reference
         let coverParser = CoverReferenceParser()
         guard let coverHref = coverParser.parse(data: opfData) else { return false }
 
         let coverURL = opfDirectory.appendingPathComponent(coverHref)
         guard let imageData = try? Data(contentsOf: coverURL) else { return false }
 
-        // Convert to JPEG for consistent storage
         guard let image = NSImage(data: imageData),
               let tiffData = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+              let jpegData = bitmap.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [NSBitmapImageRep.PropertyKey.compressionFactor: 0.85])
         else { return false }
 
         let destURL = URL(fileURLWithPath: destinationPath)
@@ -61,7 +58,7 @@ public class EPUBCoverExtractor: CoverExtractor {
 
 /// Parses OPF to find the cover image href
 class CoverReferenceParser: NSObject, XMLParserDelegate {
-    private var manifest: [String: String] = [:]  // id -> href
+    private var manifest: [String: String] = [:]
     private var coverId: String?
     private var coverHrefFromProperties: String?
 
@@ -71,9 +68,7 @@ class CoverReferenceParser: NSObject, XMLParserDelegate {
         parser.shouldProcessNamespaces = false
         parser.parse()
 
-        // EPUB3: item with properties="cover-image"
         if let href = coverHrefFromProperties { return href }
-        // EPUB2: meta name="cover" pointing to manifest id
         if let id = coverId, let href = manifest[id] { return href }
         return nil
     }

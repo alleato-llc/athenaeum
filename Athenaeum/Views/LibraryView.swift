@@ -1,10 +1,13 @@
 import SwiftUI
+import Forma
 
 private let bundle = Bundle.module
 
 public struct LibraryView: View {
     @StateObject private var viewModel = LibraryViewModel()
     @State private var showSettings = false
+    @State private var showZoomOverlay = false
+    @State private var eventMonitor: Any?
 
     public init() {}
 
@@ -35,6 +38,41 @@ public struct LibraryView: View {
                     .padding(.vertical, 4)
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            VStack(spacing: 4) {
+                Color.clear
+                    .frame(width: 200, height: 20)
+
+                if showZoomOverlay {
+                    HStack(spacing: 8) {
+                        Button(action: { adjustCoverScale(-0.1) }) {
+                            Image(systemName: "minus")
+                        }
+                        .buttonStyle(.plain)
+
+                        Slider(value: $viewModel.coverScale, in: 0.5...2.0)
+                            .frame(width: 120)
+
+                        Button(action: { adjustCoverScale(0.1) }) {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.bar)
+                    .cornerRadius(8)
+                    .transition(.opacity)
+                }
+            }
+            .padding(.trailing, 8)
+            .padding(.bottom, 4)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showZoomOverlay = hovering
+                }
+            }
+        }
         .frame(minWidth: 600, minHeight: 400)
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers)
@@ -49,6 +87,9 @@ public struct LibraryView: View {
         .onReceive(NotificationCenter.default.publisher(for: .addBooks)) { _ in
             openFilePicker()
         }
+        .background(WindowAccessor { viewModel.window = $0 })
+        .onAppear { setupKeyboardHandling() }
+        .onDisappear { removeKeyboardHandling() }
     }
 
     private func openFilePicker() {
@@ -61,6 +102,37 @@ public struct LibraryView: View {
 
         if panel.runModal() == .OK {
             viewModel.importBooks(from: panel.urls)
+        }
+    }
+
+    private func adjustCoverScale(_ delta: Double) {
+        viewModel.coverScale = min(2.0, max(0.5, viewModel.coverScale + delta))
+    }
+
+    private func setupKeyboardHandling() {
+        guard eventMonitor == nil else { return }
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.window === viewModel.window else { return event }
+            if event.modifierFlags.contains(.command) {
+                switch event.keyCode {
+                case 24: // Cmd+=
+                    adjustCoverScale(0.1)
+                    return nil
+                case 27: // Cmd+-
+                    adjustCoverScale(-0.1)
+                    return nil
+                default:
+                    break
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeKeyboardHandling() {
+        if let monitor = eventMonitor {
+            NSEvent.removeMonitor(monitor)
+            eventMonitor = nil
         }
     }
 
@@ -79,6 +151,24 @@ public struct LibraryView: View {
         group.notify(queue: .main) {
             viewModel.importBooks(from: urls)
         }
+    }
+}
+
+private struct WindowAccessor: NSViewRepresentable {
+    let onWindow: (NSWindow?) -> Void
+
+    init(_ onWindow: @escaping (NSWindow?) -> Void) {
+        self.onWindow = onWindow
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { onWindow(view.window) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { onWindow(nsView.window) }
     }
 }
 

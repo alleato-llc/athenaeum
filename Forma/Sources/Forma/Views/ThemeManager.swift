@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import WebKit
+import Ligature
 
 public class ThemeManager: ObservableObject {
     @Published public var themeMode: ThemeMode

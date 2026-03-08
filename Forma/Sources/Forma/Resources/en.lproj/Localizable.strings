@@ -1,0 +1,14 @@
+/* Reader toolbar */
+"Toggle sidebar" = "Toggle sidebar";
+"Font" = "Font";
+
+/* Reader navigation */
+"Previous" = "Previous";
+"Next" = "Next";
+"Page" = "Page";
+"Chapter" = "Chapter";
+"of %d" = "of %d";
+"nav.mode.hint" = "Double-click to switch between Page and Chapter mode";
+
+/* Window title */
+"title.progress" = "Octavo | %d%% Complete";

@@ -35,7 +35,6 @@ public struct BookEditView: View {
                 .padding()
 
             HStack(alignment: .top, spacing: 20) {
-                // Cover art
                 VStack {
                     BookCoverImage(coverPath: coverPath)
                         .frame(width: 120, height: 170)
@@ -52,7 +51,6 @@ public struct BookEditView: View {
                         .foregroundColor(.secondary)
                 }
 
-                // Fields
                 Form {
                     TextField(NSLocalizedString("edit.field.title", bundle: bundle, comment: ""),
                              text: $title)

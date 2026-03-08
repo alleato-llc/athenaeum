@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Ligature
 
 public class BookImporter {
     private let bookRepository: BookRepository
@@ -65,13 +66,10 @@ public class BookImporter {
     }
 
     public func deleteBook(_ book: LibraryBook) throws {
-        // Delete file from library
         try? FileManager.default.removeItem(atPath: book.filePath)
-        // Delete cover
         if let coverPath = book.coverPath {
             try? FileManager.default.removeItem(atPath: coverPath)
         }
-        // Delete from database
         try bookRepository.delete(bookId: book.id)
     }
 
@@ -80,7 +78,6 @@ public class BookImporter {
         try FileManager.default.createDirectory(atPath: coversDir, withIntermediateDirectories: true)
         let destPath = (coversDir as NSString).appendingPathComponent("\(bookId).jpg")
 
-        // Remove old cover if it exists
         try? FileManager.default.removeItem(atPath: destPath)
 
         let imageData = try Data(contentsOf: imageURL)
@@ -133,7 +130,7 @@ public enum ImportError: LocalizedError {
         case .unsupportedFormat(let ext): return "Unsupported file format: .\(ext)"
         case .coverConversionFailed: return "Failed to convert cover image"
         case .duplicateBook(let title):
-            return String(format: NSLocalizedString("import.error.duplicate", bundle: Bundle.module, comment: ""), title)
+            return String(format: NSLocalizedString("import.error.duplicate", bundle: .module, comment: ""), title)
         }
     }
 }

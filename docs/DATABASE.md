@@ -2,7 +2,7 @@
 
 ## Technology Choices
 
-The library uses **SQLite** via the C API (`libsqlite3`), linked directly in Ligature's `Package.swift`. There is no ORM or third-party wrapper — all queries are written as raw SQL and executed through a thin `LibraryDatabase` class that manages the connection and migrations.
+The library uses **SQLite** via the C API (`libsqlite3`), linked in the root `Package.swift` for the Athenaeum target. There is no ORM or third-party wrapper — all queries are written as raw SQL and executed through a thin `LibraryDatabase` class that manages the connection and migrations.
 
 Key configuration:
 - **WAL mode** (`PRAGMA journal_mode=WAL`) — Allows concurrent reads during writes, improving responsiveness.
@@ -34,9 +34,9 @@ Deleting a book from the library removes its file from `books/`, its cover from 
 
 | File | Purpose |
 |------|---------|
-| `Ligature/Sources/Ligature/Database/LibraryDatabase.swift` | SQLite connection, WAL/FK pragmas, schema migrations, query execution |
-| `Ligature/Sources/Ligature/Database/BookRepository.swift` | CRUD for books and author relationships, search by title/author |
-| `Ligature/Sources/Ligature/Database/SettingsRepository.swift` | Read/write user settings as key-value pairs |
+| `Athenaeum/Database/LibraryDatabase.swift` | SQLite connection, WAL/FK pragmas, schema migrations, query execution |
+| `Athenaeum/Database/BookRepository.swift` | CRUD for books and author relationships, search by title/author |
+| `Athenaeum/Database/SettingsRepository.swift` | Read/write user settings as key-value pairs |
 
 ## Schema
 

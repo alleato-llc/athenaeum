@@ -1,0 +1,14 @@
+/* Reader toolbar */
+"Toggle sidebar" = "Mostra/nascondi barra laterale";
+"Font" = "Carattere";
+
+/* Reader navigation */
+"Previous" = "Precedente";
+"Next" = "Successivo";
+"Page" = "Pagina";
+"Chapter" = "Capitolo";
+"of %d" = "di %d";
+"nav.mode.hint" = "Doppio clic per passare dalla modalità Pagina a Capitolo";
+
+/* Window title */
+"title.progress" = "Octavo | %d%% Completato";
