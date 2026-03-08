@@ -40,8 +40,8 @@
 "settings.library.browse" = "Sfoglia…";
 "settings.reading" = "Lettura";
 "settings.font" = "Carattere Predefinito";
-"settings.font.pairing" = "Abbinamento Caratteri";
-"settings.font.pairing.none" = "Nessuno (carattere unico)";
+"settings.font.pairing" = "Usa Abbinamento Caratteri";
+"settings.font.pairing.label" = "Abbinamento Caratteri";
 "fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
 "fontPairing.helveticaPalatino" = "Helvetica + Palatino";
 "fontPairing.arialGeorgia" = "Arial + Georgia";

@@ -40,8 +40,8 @@
 "settings.library.browse" = "Examinar…";
 "settings.reading" = "Lectura";
 "settings.font" = "Fuente Predeterminada";
-"settings.font.pairing" = "Combinación de Fuentes";
-"settings.font.pairing.none" = "Ninguna (fuente única)";
+"settings.font.pairing" = "Usar Combinación de Fuentes";
+"settings.font.pairing.label" = "Combinación de Fuentes";
 "fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
 "fontPairing.helveticaPalatino" = "Helvetica + Palatino";
 "fontPairing.arialGeorgia" = "Arial + Georgia";

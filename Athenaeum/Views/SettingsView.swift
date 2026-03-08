@@ -9,23 +9,19 @@ public struct SettingsView: View {
 
     @State private var libraryPath: String
     @State private var defaultFont: String
+    @State private var useFontPairing: Bool
     @State private var fontPairingId: String
     @State private var lightThemeId: String
     @State private var darkThemeId: String
-
-    private static let noPairingValue = "__none__"
 
     init(viewModel: LibraryViewModel) {
         self.viewModel = viewModel
         _libraryPath = State(initialValue: viewModel.settings.libraryPath)
         _defaultFont = State(initialValue: viewModel.settings.defaultFont)
-        _fontPairingId = State(initialValue: viewModel.settings.fontPairingId ?? Self.noPairingValue)
+        _useFontPairing = State(initialValue: viewModel.settings.fontPairingId != nil)
+        _fontPairingId = State(initialValue: viewModel.settings.fontPairingId ?? FontPairing.defaultPairing.id)
         _lightThemeId = State(initialValue: viewModel.settings.lightThemeId)
         _darkThemeId = State(initialValue: viewModel.settings.darkThemeId)
-    }
-
-    private var useFontPairing: Bool {
-        fontPairingId != Self.noPairingValue
     }
 
     private var activePairing: FontPairing? {
@@ -60,21 +56,23 @@ public struct SettingsView: View {
                 }
 
                 Section(NSLocalizedString("settings.reading", bundle: bundle, comment: "")) {
-                    Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
-                           selection: $defaultFont) {
-                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                            Text(font).tag(font)
-                        }
-                    }
+                    Toggle(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
+                           isOn: $useFontPairing)
 
-                    Picker(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
-                           selection: $fontPairingId) {
-                        Text(NSLocalizedString("settings.font.pairing.none", bundle: bundle, comment: ""))
-                            .tag(Self.noPairingValue)
-                        Divider()
-                        ForEach(FontPairing.pairings) { pairing in
-                            Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
-                                .tag(pairing.id)
+                    if useFontPairing {
+                        Picker(NSLocalizedString("settings.font.pairing.label", bundle: bundle, comment: ""),
+                               selection: $fontPairingId) {
+                            ForEach(FontPairing.pairings) { pairing in
+                                Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
+                                    .tag(pairing.id)
+                            }
+                        }
+                    } else {
+                        Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
+                               selection: $defaultFont) {
+                            ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                                Text(font).tag(font)
+                            }
                         }
                     }
 

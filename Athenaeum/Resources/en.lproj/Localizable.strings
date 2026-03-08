@@ -40,8 +40,8 @@
 "settings.library.browse" = "Browse…";
 "settings.reading" = "Reading";
 "settings.font" = "Default Font";
-"settings.font.pairing" = "Font Pairing";
-"settings.font.pairing.none" = "None (single font)";
+"settings.font.pairing" = "Use Font Pairing";
+"settings.font.pairing.label" = "Font Pairing";
 "fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
 "fontPairing.helveticaPalatino" = "Helvetica + Palatino";
 "fontPairing.arialGeorgia" = "Arial + Georgia";
