@@ -4,11 +4,22 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 
 ## Project Structure
 
-Swift Package (swift-tools-version 5.9, macOS 13+) with two executable targets and one library:
+Swift Package (swift-tools-version 5.9, macOS 13+) with two app targets and one shared library:
 
-- **Athenaeum** (`Athenaeum/AthenaeumApp.swift`) — Library/catalog app. Import, browse, and manage books.
-- **Octavo** (`Octavo/OctavoApp.swift`) — EPUB reader app. Opens `.epub` files via file picker or drag-and-drop.
+- **Athenaeum** (`Athenaeum/AthenaeumApp.swift`) — Library/catalog app. Import, browse, and manage books. Bundle ID: `com.alleato.athenaeum`.
+- **Octavo** (`Octavo/OctavoApp.swift`) — EPUB reader app. Opens `.epub` files via file picker or drag-and-drop. Bundle ID: `com.alleato.octavo`.
 - **Ligature** (`Ligature/`) — Shared library: EPUB parsing, reader UI, and view models.
+
+### Xcode Project
+
+The Xcode project is generated from `project.yml` using [xcodegen](https://github.com/yonaskolb/XcodeGen):
+
+```sh
+xcodegen generate        # Generate Athenaeum.xcodeproj
+open Athenaeum.xcodeproj # Open in Xcode
+```
+
+The `.xcodeproj` is gitignored — always regenerate from `project.yml`. Both app targets use automatic code signing and include App Sandbox entitlements with user-selected file read-write access.
 
 ### Ligature Layout
 
@@ -51,8 +62,17 @@ Ligature/Sources/Ligature/
 
 ## Build & Run
 
+### Xcode (recommended for development)
+
 ```sh
-swift build            # Build all targets
+xcodegen generate        # Generate .xcodeproj from project.yml
+open Athenaeum.xcodeproj # Open in Xcode, select Athenaeum or Octavo scheme
+```
+
+### Command line
+
+```sh
+swift build            # Build all targets via SwiftPM
 swift run Octavo       # Run the standalone EPUB reader
 swift run Athenaeum    # Run the library app
 ```

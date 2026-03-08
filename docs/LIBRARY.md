@@ -16,10 +16,11 @@ There are two ways to add books:
 - **Add button** — Click the `+` button in the toolbar and select files from the file picker.
 
 On import, the app:
-1. Copies the file into the library's `books/` directory
-2. Extracts metadata (title, author, year, genre, ISBN) from the EPUB
-3. Extracts the cover image and saves it as a JPEG in the `covers/` directory
-4. Inserts the book and author records into the database
+1. Extracts metadata (title, author, year, genre, ISBN) from the EPUB
+2. Checks for duplicates — if a book with the same title and author(s) already exists, the import is rejected
+3. Copies the file into the library's `books/` directory
+4. Extracts the cover image and saves it as a JPEG in the `covers/` directory
+5. Inserts the book and author records into the database
 
 ### Browsing
 
@@ -60,7 +61,8 @@ Click the gear icon in the toolbar to open Settings:
 
 - **Library Path** — Where book files and the database are stored. Default: `~/Library/Application Support/Athenaeum/`
 - **Default Font** — Font family used when opening books in the reader.
-- **Default Theme** — Light or dark mode for the reader.
+- **Default Light Theme** — Named theme palette for light mode (Classic, Sepia, Paper, Ivory, Sage).
+- **Default Dark Theme** — Named theme palette for dark mode (Charcoal, Midnight, Solarized Dark, Monokai, Slate).
 
 ## Relevant Files
 
@@ -72,7 +74,8 @@ Click the gear icon in the toolbar to open Settings:
 |------|---------|
 | `LibraryBook.swift` | Book model: metadata, format, file paths, JSON identifiers |
 | `Author.swift` | Author model with unique name constraint |
-| `UserSettings.swift` | Settings model: library path, default font, default theme |
+| `UserSettings.swift` | Settings model: library path, font, theme mode, theme IDs |
+| `ReadingTheme.swift` | Named theme palettes (light/dark), available fonts |
 
 **Import** (`Ligature/Sources/Ligature/Import/`)
 
@@ -91,7 +94,8 @@ Click the gear icon in the toolbar to open Settings:
 | `BookGridView.swift` | Scrollable grid of cover thumbnails with context menus |
 | `BookTableView.swift` | Table view with title, author, year, format, genre columns |
 | `BookEditView.swift` | Metadata edit sheet with cover art replacement |
-| `SettingsView.swift` | Settings sheet: library path, font, theme |
+| `SettingsView.swift` | Settings sheet: library path, font, light/dark theme pickers with previews |
+| `ThemeManager.swift` | Theme resolution, CSS injection, system appearance KVO |
 
 **App Entry** (`Athenaeum/`)
 

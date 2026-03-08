@@ -73,7 +73,7 @@ All XML parsing uses Foundation's `XMLParser` (SAX-style). No third-party XML li
 - Book title display
 - Font family selector
 - Page zoom controls
-- Dark/light theme toggle
+- Three-mode theme toggle (light / dark / system)
 
 **`ReaderNavigationBar`** — Bottom navigation (auto-hides). Controls:
 - Previous/next chapter buttons
@@ -83,22 +83,48 @@ All XML parsing uses Foundation's `XMLParser` (SAX-style). No third-party XML li
 - Navigation delegate for internal link interception
 - Page zoom application on load
 
+**`ThemeManager`** — `ObservableObject` service managing theme state:
+- Three-mode theme cycling: light → dark → system → light
+- Resolves the active `ReadingTheme` based on mode and system appearance
+- Observes `NSApp.effectiveAppearance` via KVO for automatic system theme changes
+- Generates and injects CSS into `WKWebView` for styling
+
 **`ReaderViewModel`** — `ObservableObject` managing reader state:
 - Current chapter index and navigation
 - Font family and page zoom level
-- Dark/light mode theme
-- CSS injection via `evaluateJavaScript` for styling
+- Composes with `ThemeManager` for theme resolution and styling
 - Scroll position save/restore across chapters
 
 ### Styling
 
-Chapter content is styled by injecting a `<style>` element into the loaded HTML via JavaScript. The injected CSS:
+Chapter content is styled by `ThemeManager`, which injects a `<style>` element into the loaded HTML via JavaScript. The injected CSS:
 - Sets font family on `body` and forces inheritance on all elements with `* { font-family: inherit !important }`
-- Applies background/text/link colors for theming
+- Applies background, text, link, and code background colors from the active `ReadingTheme`
 - Constrains content width to `45em` for readability
 - Overrides inline styles from EPUB content using `!important`
 
 Page zoom is handled separately via `WKWebView.pageZoom`, which uniformly scales all content.
+
+### Themes
+
+The app ships with 10 named theme palettes (5 light, 5 dark) defined in `ReadingTheme`. Users select a default light and dark theme in Settings. The reader toolbar cycles between three modes:
+- **Light** — uses the selected light theme
+- **Dark** — uses the selected dark theme
+- **System** — follows macOS appearance, switching automatically via KVO on `NSApp.effectiveAppearance`
+
+### Import Validation
+
+`BookImporter` checks for duplicate books before copying files to the library. A book is considered a duplicate if another book with the same title and author(s) already exists (case-insensitive match via `BookRepository.bookExists`). Duplicate detection happens at the service layer — no UI changes are needed since `LibraryViewModel` already surfaces import errors.
+
+## Xcode Project
+
+The Xcode project is generated from `project.yml` at the repo root using [xcodegen](https://github.com/yonaskolb/XcodeGen). The `.xcodeproj` is gitignored; run `xcodegen generate` to recreate it.
+
+Both app targets are configured for App Store distribution:
+- Automatic code signing
+- App Sandbox with user-selected read-write file access
+- EPUB document type and UTI declarations in Info.plist
+- Bundle IDs: `com.alleato.athenaeum` and `com.alleato.octavo`
 
 ## Apps
 
