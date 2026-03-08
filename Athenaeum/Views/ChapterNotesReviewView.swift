@@ -1,7 +1,11 @@
 import SwiftUI
 import Forma
 
+#if SWIFT_PACKAGE
 private let bundle = Bundle.module
+#else
+private let bundle = Bundle.main
+#endif
 
 struct ChapterNotesReviewView: View {
     let entry: NotesWindowStore.Entry

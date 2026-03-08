@@ -1,6 +1,10 @@
 import SwiftUI
 
+#if SWIFT_PACKAGE
 private let bundle = Bundle.module
+#else
+private let bundle = Bundle.main
+#endif
 
 struct ExportJobsButton: View {
     @ObservedObject var jobManager: ExportJobManager
