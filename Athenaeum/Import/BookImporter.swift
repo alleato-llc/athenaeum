@@ -27,20 +27,24 @@ public class BookImporter {
         }
 
         let bookId = UUID().uuidString
+        let primaryAuthor = metadata.authors.first ?? ""
+        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+
+        // Create book directory
+        let bookDir = pathBuilder.bookDirectory(authorName: primaryAuthor, title: metadata.title)
+        try FileManager.default.createDirectory(atPath: bookDir, withIntermediateDirectories: true)
 
         // Copy file to library
-        let booksDir = (libraryPath as NSString).appendingPathComponent("books")
-        try FileManager.default.createDirectory(atPath: booksDir, withIntermediateDirectories: true)
-        let destFileName = "\(bookId).\(fileExtension)"
-        let destPath = (booksDir as NSString).appendingPathComponent(destFileName)
+        let destPath = pathBuilder.bookFilePath(authorName: primaryAuthor, title: metadata.title,
+                                                bookId: bookId, fileExtension: fileExtension)
         try FileManager.default.copyItem(atPath: sourceURL.path, toPath: destPath)
 
-        // Extract cover
+        // Extract cover to the same directory
         var coverPath: String?
         let coverExtractor = self.coverExtractor(for: format)
         if let coverExt = coverExtractor {
-            let coversDir = (libraryPath as NSString).appendingPathComponent("covers")
-            let coverDest = (coversDir as NSString).appendingPathComponent("\(bookId).jpg")
+            let coverDest = pathBuilder.coverFilePath(authorName: primaryAuthor, title: metadata.title,
+                                                      bookId: bookId)
             if (try? coverExt.extractCover(from: sourceURL, to: coverDest)) == true {
                 coverPath = coverDest
             }
@@ -66,17 +70,22 @@ public class BookImporter {
     }
 
     public func deleteBook(_ book: LibraryBook) throws {
+        let bookDir = (book.filePath as NSString).deletingLastPathComponent
+
         try? FileManager.default.removeItem(atPath: book.filePath)
         if let coverPath = book.coverPath {
             try? FileManager.default.removeItem(atPath: coverPath)
         }
+
+        // Clean up empty directories up to the books/ root
+        cleanupEmptyDirectories(from: bookDir)
+
         try bookRepository.delete(bookId: book.id)
     }
 
-    public func updateCover(bookId: String, from imageURL: URL) throws -> String {
-        let coversDir = (libraryPath as NSString).appendingPathComponent("covers")
-        try FileManager.default.createDirectory(atPath: coversDir, withIntermediateDirectories: true)
-        let destPath = (coversDir as NSString).appendingPathComponent("\(bookId).jpg")
+    public func updateCover(bookId: String, bookFilePath: String, from imageURL: URL) throws -> String {
+        let bookDir = (bookFilePath as NSString).deletingLastPathComponent
+        let destPath = (bookDir as NSString).appendingPathComponent("\(bookId).jpg")
 
         try? FileManager.default.removeItem(atPath: destPath)
 
@@ -91,6 +100,63 @@ public class BookImporter {
 
         try jpegData.write(to: URL(fileURLWithPath: destPath))
         return destPath
+    }
+
+    /// Migrates books from the old flat layout (`books/{uuid}.epub`, `covers/{uuid}.jpg`)
+    /// to the new author/title directory structure.
+    public func migrateStorageLayout(books: [(book: LibraryBook, authors: [Author])]) {
+        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+        let fm = FileManager.default
+
+        for (book, authors) in books {
+            let primaryAuthor = authors.first?.name ?? ""
+            let newFilePath = pathBuilder.bookFilePath(authorName: primaryAuthor, title: book.title,
+                                                       bookId: book.id, fileExtension: book.format.rawValue)
+
+            // Skip if already at the new path
+            if book.filePath == newFilePath { continue }
+
+            // Skip if old file doesn't exist
+            guard fm.fileExists(atPath: book.filePath) else { continue }
+
+            let newBookDir = pathBuilder.bookDirectory(authorName: primaryAuthor, title: book.title)
+            try? fm.createDirectory(atPath: newBookDir, withIntermediateDirectories: true)
+
+            // Move book file
+            try? fm.moveItem(atPath: book.filePath, toPath: newFilePath)
+
+            // Move cover
+            var newCoverPath: String?
+            if let coverPath = book.coverPath, fm.fileExists(atPath: coverPath) {
+                let dest = pathBuilder.coverFilePath(authorName: primaryAuthor, title: book.title, bookId: book.id)
+                try? fm.moveItem(atPath: coverPath, toPath: dest)
+                newCoverPath = dest
+            }
+
+            // Update database paths
+            try? bookRepository.updatePaths(bookId: book.id, filePath: newFilePath,
+                                            coverPath: newCoverPath ?? book.coverPath)
+        }
+
+        // Clean up old empty covers/ directory
+        let oldCoversDir = (libraryPath as NSString).appendingPathComponent("covers")
+        if let contents = try? fm.contentsOfDirectory(atPath: oldCoversDir), contents.isEmpty {
+            try? fm.removeItem(atPath: oldCoversDir)
+        }
+    }
+
+    private func cleanupEmptyDirectories(from path: String) {
+        let booksDir = (libraryPath as NSString).appendingPathComponent("books")
+        var current = path
+        while current != booksDir && current.hasPrefix(booksDir) {
+            let contents = (try? FileManager.default.contentsOfDirectory(atPath: current)) ?? []
+            if contents.isEmpty {
+                try? FileManager.default.removeItem(atPath: current)
+                current = (current as NSString).deletingLastPathComponent
+            } else {
+                break
+            }
+        }
     }
 
     private func metadataExtractor(for format: BookFormat) -> MetadataExtractor {

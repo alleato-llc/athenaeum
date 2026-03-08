@@ -52,6 +52,7 @@ public class LibraryViewModel: ObservableObject {
         }
 
         loadBooks()
+        migrateStorageIfNeeded()
 
         NotificationCenter.default.addObserver(forName: .saveReadingProgress, object: nil, queue: .main) { [weak self] notification in
             guard let self = self,
@@ -113,7 +114,8 @@ public class LibraryViewModel: ObservableObject {
 
     public func updateCover(bookId: String, from imageURL: URL) {
         do {
-            let newPath = try bookImporter.updateCover(bookId: bookId, from: imageURL)
+            guard let entry = books.first(where: { $0.id == bookId }) else { return }
+            let newPath = try bookImporter.updateCover(bookId: bookId, bookFilePath: entry.book.filePath, from: imageURL)
             if let index = books.firstIndex(where: { $0.id == bookId }) {
                 books[index].book.coverPath = newPath
             }
@@ -135,6 +137,20 @@ public class LibraryViewModel: ObservableObject {
 
     public func performSearch() {
         loadBooks()
+    }
+
+    private func migrateStorageIfNeeded() {
+        let key = "storage_layout_version"
+        let current = (try? settingsRepository.get(key)) ?? "0"
+        guard current == "0" else { return }
+        do {
+            let allBooks = try bookRepository.fetchAll()
+            bookImporter.migrateStorageLayout(books: allBooks)
+            try settingsRepository.set(key, value: "1")
+            loadBooks()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     public func openBook(_ entry: BookEntry) {

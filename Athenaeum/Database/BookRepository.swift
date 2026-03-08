@@ -119,6 +119,18 @@ public class BookRepository {
         try db.execute("DELETE FROM books WHERE id = '\(bookId)';")
     }
 
+    public func updatePaths(bookId: String, filePath: String, coverPath: String?) throws {
+        let stmt = try db.prepareStatement("UPDATE books SET file_path=?, cover_path=? WHERE id=?;")
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, (filePath as NSString).utf8String, -1, nil)
+        if let cover = coverPath { sqlite3_bind_text(stmt, 2, (cover as NSString).utf8String, -1, nil) }
+        else { sqlite3_bind_null(stmt, 2) }
+        sqlite3_bind_text(stmt, 3, (bookId as NSString).utf8String, -1, nil)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw LibraryDatabaseError.queryFailed("Failed to update book paths")
+        }
+    }
+
     public func fetchAll() throws -> [(book: LibraryBook, authors: [Author])] {
         let stmt = try db.prepareStatement("""
             SELECT id, title, year, genre, page_count, format, identifiers,

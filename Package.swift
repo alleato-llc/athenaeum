@@ -21,6 +21,11 @@ let package = Package(
             path: "Athenaeum",
             resources: [.process("Resources")],
             linkerSettings: [.linkedLibrary("sqlite3")]
+        ),
+        .testTarget(
+            name: "AthenaeumTests",
+            dependencies: ["Athenaeum"],
+            path: "Tests/AthenaeumTests"
         )
     ]
 )
