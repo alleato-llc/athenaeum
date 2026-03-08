@@ -40,9 +40,14 @@
 "settings.library.browse" = "Sfoglia…";
 "settings.reading" = "Lettura";
 "settings.font" = "Carattere Predefinito";
-"settings.font.pairing" = "Usa Abbinamento Caratteri";
-"settings.font.header" = "Carattere Intestazione";
-"settings.font.body" = "Carattere del Corpo";
+"settings.font.pairing" = "Abbinamento Caratteri";
+"settings.font.pairing.none" = "Nessuno (carattere unico)";
+"fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
+"fontPairing.helveticaPalatino" = "Helvetica + Palatino";
+"fontPairing.arialGeorgia" = "Arial + Georgia";
+"fontPairing.georgiaHelvetica" = "Georgia + Helvetica";
+"fontPairing.palatinoHelvetica" = "Palatino + Helvetica";
+"fontPairing.verdanaGeorgia" = "Verdana + Georgia";
 "settings.theme.lightTheme" = "Tema Chiaro Predefinito";
 "settings.theme.darkTheme" = "Tema Scuro Predefinito";
 

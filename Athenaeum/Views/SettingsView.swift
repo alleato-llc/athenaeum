@@ -9,19 +9,36 @@ public struct SettingsView: View {
 
     @State private var libraryPath: String
     @State private var defaultFont: String
-    @State private var useFontPairing: Bool
-    @State private var bodyFont: String
+    @State private var fontPairingId: String
     @State private var lightThemeId: String
     @State private var darkThemeId: String
+
+    private static let noPairingValue = "__none__"
 
     init(viewModel: LibraryViewModel) {
         self.viewModel = viewModel
         _libraryPath = State(initialValue: viewModel.settings.libraryPath)
         _defaultFont = State(initialValue: viewModel.settings.defaultFont)
-        _useFontPairing = State(initialValue: viewModel.settings.useFontPairing)
-        _bodyFont = State(initialValue: viewModel.settings.bodyFont)
+        _fontPairingId = State(initialValue: viewModel.settings.fontPairingId ?? Self.noPairingValue)
         _lightThemeId = State(initialValue: viewModel.settings.lightThemeId)
         _darkThemeId = State(initialValue: viewModel.settings.darkThemeId)
+    }
+
+    private var useFontPairing: Bool {
+        fontPairingId != Self.noPairingValue
+    }
+
+    private var activePairing: FontPairing? {
+        guard useFontPairing else { return nil }
+        return FontPairing.pairing(byId: fontPairingId)
+    }
+
+    private var previewHeaderFont: String {
+        activePairing?.headerFont ?? defaultFont
+    }
+
+    private var previewBodyFont: String {
+        activePairing?.bodyFont ?? defaultFont
     }
 
     public var body: some View {
@@ -43,28 +60,21 @@ public struct SettingsView: View {
                 }
 
                 Section(NSLocalizedString("settings.reading", bundle: bundle, comment: "")) {
-                    Toggle(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
-                           isOn: $useFontPairing)
+                    Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
+                           selection: $defaultFont) {
+                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                            Text(font).tag(font)
+                        }
+                    }
 
-                    if useFontPairing {
-                        Picker(NSLocalizedString("settings.font.header", bundle: bundle, comment: ""),
-                               selection: $defaultFont) {
-                            ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                                Text(font).tag(font)
-                            }
-                        }
-                        Picker(NSLocalizedString("settings.font.body", bundle: bundle, comment: ""),
-                               selection: $bodyFont) {
-                            ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                                Text(font).tag(font)
-                            }
-                        }
-                    } else {
-                        Picker(NSLocalizedString("settings.font", bundle: bundle, comment: ""),
-                               selection: $defaultFont) {
-                            ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                                Text(font).tag(font)
-                            }
+                    Picker(NSLocalizedString("settings.font.pairing", bundle: bundle, comment: ""),
+                           selection: $fontPairingId) {
+                        Text(NSLocalizedString("settings.font.pairing.none", bundle: bundle, comment: ""))
+                            .tag(Self.noPairingValue)
+                        Divider()
+                        ForEach(FontPairing.pairings) { pairing in
+                            Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
+                                .tag(pairing.id)
                         }
                     }
 
@@ -78,8 +88,8 @@ public struct SettingsView: View {
 
                     if let lightTheme = ReadingTheme.lightThemes.first(where: { $0.id == lightThemeId }) {
                         ThemePreviewCard(theme: lightTheme,
-                                         headerFont: defaultFont,
-                                         bodyFont: useFontPairing ? bodyFont : defaultFont)
+                                         headerFont: previewHeaderFont,
+                                         bodyFont: previewBodyFont)
                     }
 
                     Picker(NSLocalizedString("settings.theme.darkTheme", bundle: bundle, comment: ""),
@@ -92,8 +102,8 @@ public struct SettingsView: View {
 
                     if let darkTheme = ReadingTheme.darkThemes.first(where: { $0.id == darkThemeId }) {
                         ThemePreviewCard(theme: darkTheme,
-                                         headerFont: defaultFont,
-                                         bodyFont: useFontPairing ? bodyFont : defaultFont)
+                                         headerFont: previewHeaderFont,
+                                         bodyFont: previewBodyFont)
                     }
                 }
             }
@@ -112,8 +122,7 @@ public struct SettingsView: View {
                 Button(NSLocalizedString("edit.save", bundle: bundle, comment: "")) {
                     viewModel.settings.libraryPath = libraryPath
                     viewModel.settings.defaultFont = defaultFont
-                    viewModel.settings.useFontPairing = useFontPairing
-                    viewModel.settings.bodyFont = bodyFont
+                    viewModel.settings.fontPairingId = useFontPairing ? fontPairingId : nil
                     viewModel.settings.lightThemeId = lightThemeId
                     viewModel.settings.darkThemeId = darkThemeId
                     viewModel.saveSettings()

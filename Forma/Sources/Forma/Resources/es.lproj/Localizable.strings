@@ -1,9 +1,13 @@
 /* Reader toolbar */
 "Toggle sidebar" = "Alternar barra lateral";
 "Font" = "Fuente";
-"font.pairing" = "Usar Combinación de Fuentes";
-"font.header" = "Fuente de Encabezado";
-"font.body" = "Fuente del Cuerpo";
+"font.pairing" = "Combinación de Fuentes";
+"fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
+"fontPairing.helveticaPalatino" = "Helvetica + Palatino";
+"fontPairing.arialGeorgia" = "Arial + Georgia";
+"fontPairing.georgiaHelvetica" = "Georgia + Helvetica";
+"fontPairing.palatinoHelvetica" = "Palatino + Helvetica";
+"fontPairing.verdanaGeorgia" = "Verdana + Georgia";
 
 /* Reader navigation */
 "Previous" = "Anterior";

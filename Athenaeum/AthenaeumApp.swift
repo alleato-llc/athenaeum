@@ -21,8 +21,7 @@ struct AthenaeumApp: App {
                     let lastChapterIndex = info["lastChapterIndex"] as? Int
                     let lastScrollPosition = info["lastScrollPosition"] as? Double
                     let fontFamily = info["fontFamily"] as? String ?? "Georgia"
-                    let useFontPairing = info["useFontPairing"] as? Bool ?? false
-                    let bodyFont = info["bodyFont"] as? String ?? "Georgia"
+                    let fontPairingId = info["fontPairingId"] as? String
                     let themeMode = info["themeMode"] as? ThemeMode ?? .system
                     let lightThemeId = info["lightThemeId"] as? String ?? "classic"
                     let darkThemeId = info["darkThemeId"] as? String ?? "charcoal"
@@ -30,8 +29,7 @@ struct AthenaeumApp: App {
                                                  lastChapterIndex: lastChapterIndex,
                                                  lastScrollPosition: lastScrollPosition,
                                                  fontFamily: fontFamily,
-                                                 useFontPairing: useFontPairing,
-                                                 bodyFont: bodyFont,
+                                                 fontPairingId: fontPairingId,
                                                  themeMode: themeMode,
                                                  lightThemeId: lightThemeId,
                                                  darkThemeId: darkThemeId)
@@ -54,8 +52,7 @@ struct AthenaeumApp: App {
                            lastChapterIndex: entry.lastChapterIndex,
                            lastScrollPosition: entry.lastScrollPosition,
                            fontFamily: entry.fontFamily,
-                           useFontPairing: entry.useFontPairing,
-                           bodyFont: entry.bodyFont,
+                           fontPairingId: entry.fontPairingId,
                            themeMode: entry.themeMode,
                            lightThemeId: entry.lightThemeId,
                            darkThemeId: entry.darkThemeId)
@@ -80,8 +77,7 @@ class BookWindowStore {
         let lastChapterIndex: Int?
         let lastScrollPosition: Double?
         let fontFamily: String
-        let useFontPairing: Bool
-        let bodyFont: String
+        let fontPairingId: String?
         let themeMode: ThemeMode
         let lightThemeId: String
         let darkThemeId: String
@@ -91,16 +87,14 @@ class BookWindowStore {
 
     func store(_ book: EPUBBook, libraryBookId: String? = nil,
                lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
-               fontFamily: String = "Georgia", useFontPairing: Bool = false,
-               bodyFont: String = "Georgia",
+               fontFamily: String = "Georgia", fontPairingId: String? = nil,
                themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                darkThemeId: String = "charcoal") {
         entries[book.id] = Entry(book: book, libraryBookId: libraryBookId,
                                   lastChapterIndex: lastChapterIndex,
                                   lastScrollPosition: lastScrollPosition,
                                   fontFamily: fontFamily,
-                                  useFontPairing: useFontPairing,
-                                  bodyFont: bodyFont,
+                                  fontPairingId: fontPairingId,
                                   themeMode: themeMode,
                                   lightThemeId: lightThemeId,
                                   darkThemeId: darkThemeId)

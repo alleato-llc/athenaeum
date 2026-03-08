@@ -166,12 +166,13 @@ public class LibraryViewModel: ObservableObject {
                 "book": epubBook,
                 "libraryBookId": entry.book.id,
                 "fontFamily": settings.defaultFont,
-                "useFontPairing": settings.useFontPairing,
-                "bodyFont": settings.bodyFont,
                 "themeMode": settings.themeMode,
                 "lightThemeId": settings.lightThemeId,
                 "darkThemeId": settings.darkThemeId
             ]
+            if let pairingId = settings.fontPairingId {
+                userInfo["fontPairingId"] = pairingId
+            }
             if let position = entry.book.readingPosition {
                 userInfo["lastChapterIndex"] = position.chapter
                 userInfo["lastScrollPosition"] = position.scroll

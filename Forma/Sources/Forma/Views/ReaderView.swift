@@ -13,15 +13,14 @@ public struct ReaderView: View {
 
     public init(book: EPUBBook, libraryBookId: String? = nil,
                 lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
-                fontFamily: String = "Georgia", useFontPairing: Bool = false,
-                bodyFont: String = "Georgia",
+                fontFamily: String = "Georgia", fontPairingId: String? = nil,
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                 darkThemeId: String = "charcoal") {
         self.book = book
         _viewModel = StateObject(wrappedValue: ReaderViewModel(
             book: book, libraryBookId: libraryBookId,
             lastChapterIndex: lastChapterIndex, lastScrollPosition: lastScrollPosition,
-            fontFamily: fontFamily, useFontPairing: useFontPairing, bodyFont: bodyFont,
+            fontFamily: fontFamily, fontPairingId: fontPairingId,
             themeMode: themeMode, lightThemeId: lightThemeId, darkThemeId: darkThemeId))
     }
 
@@ -181,6 +180,7 @@ struct TOCEntryRow: View {
 
 struct ReaderToolbarView: View {
     @ObservedObject var viewModel: ReaderViewModel
+
     @Binding var showSidebar: Bool
 
     private var themeModeIcon: String {
@@ -193,8 +193,9 @@ struct ReaderToolbarView: View {
 
     private func applyFonts() {
         guard let webView = viewModel.webView else { return }
-        viewModel.themeManager.applyStyles(to: webView, fontFamily: viewModel.fontFamily,
-                                            bodyFont: viewModel.useFontPairing ? viewModel.bodyFont : nil)
+        let bodyFont: String? = viewModel.fontPairingId != nil ? viewModel.bodyFontResolved : nil
+        viewModel.themeManager.applyStyles(to: webView, fontFamily: viewModel.headerFont,
+                                            bodyFont: bodyFont)
     }
 
     var body: some View {
@@ -211,56 +212,36 @@ struct ReaderToolbarView: View {
             Spacer()
 
             Menu {
-                Toggle(NSLocalizedString("font.pairing", bundle: bundle, comment: ""), isOn: Binding(
-                    get: { viewModel.useFontPairing },
-                    set: { newValue in
-                        viewModel.useFontPairing = newValue
-                        applyFonts()
-                    }
-                ))
-
-                Divider()
-
-                if viewModel.useFontPairing {
-                    Menu(NSLocalizedString("font.header", bundle: bundle, comment: "")) {
-                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                            Button {
-                                viewModel.fontFamily = font
-                                applyFonts()
-                            } label: {
-                                HStack {
-                                    Text(font)
-                                    if viewModel.fontFamily == font {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Menu(NSLocalizedString("font.body", bundle: bundle, comment: "")) {
-                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                            Button {
-                                viewModel.bodyFont = font
-                                applyFonts()
-                            } label: {
-                                HStack {
-                                    Text(font)
-                                    if viewModel.bodyFont == font {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
+                // Single font picker (used when no pairing)
+                Menu(NSLocalizedString("Font", bundle: bundle, comment: "")) {
                     ForEach(ReadingTheme.availableFonts, id: \.self) { font in
                         Button {
                             viewModel.fontFamily = font
+                            viewModel.fontPairingId = nil
                             applyFonts()
                         } label: {
                             HStack {
                                 Text(font)
-                                if viewModel.fontFamily == font {
+                                if viewModel.fontPairingId == nil && viewModel.fontFamily == font {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                // Font pairings
+                Menu(NSLocalizedString("font.pairing", bundle: bundle, comment: "")) {
+                    ForEach(FontPairing.pairings) { pairing in
+                        Button {
+                            viewModel.fontPairingId = pairing.id
+                            applyFonts()
+                        } label: {
+                            HStack {
+                                Text(NSLocalizedString(pairing.name, bundle: bundle, comment: ""))
+                                if viewModel.fontPairingId == pairing.id {
                                     Image(systemName: "checkmark")
                                 }
                             }

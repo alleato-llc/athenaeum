@@ -32,11 +32,17 @@ public class SettingsRepository {
         }
     }
 
+    public func delete(_ key: String) throws {
+        let stmt = try db.prepareStatement("DELETE FROM settings WHERE key = ?;")
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, (key as NSString).utf8String, -1, nil)
+        sqlite3_step(stmt)
+    }
+
     public func loadSettings() throws -> UserSettings {
         let libraryPath = try get("libraryPath") ?? UserSettings.defaultLibraryPath
         let defaultFont = try get("defaultFont") ?? "Georgia"
-        let useFontPairing = (try get("useFontPairing")) == "true"
-        let bodyFont = try get("bodyFont") ?? "Georgia"
+        let fontPairingId = try get("fontPairingId")
 
         let themeMode: ThemeMode
         if let themeModeStr = try get("themeMode") {
@@ -51,7 +57,7 @@ public class SettingsRepository {
         let darkThemeId = try get("darkThemeId") ?? "charcoal"
 
         return UserSettings(libraryPath: libraryPath, defaultFont: defaultFont,
-                           useFontPairing: useFontPairing, bodyFont: bodyFont,
+                           fontPairingId: fontPairingId,
                            themeMode: themeMode, lightThemeId: lightThemeId,
                            darkThemeId: darkThemeId)
     }
@@ -59,8 +65,11 @@ public class SettingsRepository {
     public func saveSettings(_ settings: UserSettings) throws {
         try set("libraryPath", value: settings.libraryPath)
         try set("defaultFont", value: settings.defaultFont)
-        try set("useFontPairing", value: settings.useFontPairing ? "true" : "false")
-        try set("bodyFont", value: settings.bodyFont)
+        if let pairingId = settings.fontPairingId {
+            try set("fontPairingId", value: pairingId)
+        } else {
+            try delete("fontPairingId")
+        }
         try set("themeMode", value: settings.themeMode.rawValue)
         try set("lightThemeId", value: settings.lightThemeId)
         try set("darkThemeId", value: settings.darkThemeId)

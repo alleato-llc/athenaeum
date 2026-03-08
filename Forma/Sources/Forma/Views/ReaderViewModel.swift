@@ -14,8 +14,7 @@ public class ReaderViewModel: ObservableObject {
 
     @Published public var currentChapterIndex: Int = 0
     @Published public var fontFamily: String = "Georgia"
-    @Published public var useFontPairing: Bool = false
-    @Published public var bodyFont: String = "Georgia"
+    @Published public var fontPairingId: String?
     @Published public var zoom: Double = 1.0
     @Published public var goToChapter: Int = 1
     @Published public var readingProgress: Double = 0
@@ -46,10 +45,22 @@ public class ReaderViewModel: ObservableObject {
     private var initialChapterIndex: Int?
     private var initialScrollPosition: Double?
 
+    public var activePairing: FontPairing? {
+        guard let id = fontPairingId else { return nil }
+        return FontPairing.pairing(byId: id)
+    }
+
+    public var headerFont: String {
+        activePairing?.headerFont ?? fontFamily
+    }
+
+    public var bodyFontResolved: String {
+        activePairing?.bodyFont ?? fontFamily
+    }
+
     public init(book: EPUBBook, libraryBookId: String? = nil,
                 lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
-                fontFamily: String = "Georgia", useFontPairing: Bool = false,
-                bodyFont: String = "Georgia",
+                fontFamily: String = "Georgia", fontPairingId: String? = nil,
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                 darkThemeId: String = "charcoal") {
         self.book = book
@@ -57,8 +68,7 @@ public class ReaderViewModel: ObservableObject {
         self.initialChapterIndex = lastChapterIndex
         self.initialScrollPosition = lastScrollPosition
         self.fontFamily = fontFamily
-        self.useFontPairing = useFontPairing
-        self.bodyFont = bodyFont
+        self.fontPairingId = fontPairingId
         self.themeManager = ThemeManager(themeMode: themeMode, lightThemeId: lightThemeId,
                                          darkThemeId: darkThemeId)
 
@@ -364,8 +374,9 @@ public class ReaderViewModel: ObservableObject {
 
     private func applyThemeStyles() {
         guard let webView = webView else { return }
-        themeManager.applyStyles(to: webView, fontFamily: fontFamily,
-                                  bodyFont: useFontPairing ? bodyFont : nil)
+        let bodyFont: String? = fontPairingId != nil ? bodyFontResolved : nil
+        themeManager.applyStyles(to: webView, fontFamily: headerFont,
+                                  bodyFont: bodyFont)
     }
 
     private func updateProgress() {

@@ -88,3 +88,40 @@ public struct ReadingTheme: Identifiable, Equatable {
         "Courier New", "Menlo"
     ]
 }
+
+public struct FontPairing: Identifiable, Equatable {
+    public let id: String
+    public let name: String
+    public let headerFont: String
+    public let bodyFont: String
+
+    public init(id: String, name: String, headerFont: String, bodyFont: String) {
+        self.id = id
+        self.name = name
+        self.headerFont = headerFont
+        self.bodyFont = bodyFont
+    }
+
+    public static let pairings: [FontPairing] = [
+        FontPairing(id: "helvetica-georgia", name: "fontPairing.helveticaGeorgia",
+                     headerFont: "Helvetica", bodyFont: "Georgia"),
+        FontPairing(id: "helvetica-palatino", name: "fontPairing.helveticaPalatino",
+                     headerFont: "Helvetica", bodyFont: "Palatino"),
+        FontPairing(id: "arial-georgia", name: "fontPairing.arialGeorgia",
+                     headerFont: "Arial", bodyFont: "Georgia"),
+        FontPairing(id: "georgia-helvetica", name: "fontPairing.georgiaHelvetica",
+                     headerFont: "Georgia", bodyFont: "Helvetica"),
+        FontPairing(id: "palatino-helvetica", name: "fontPairing.palatinoHelvetica",
+                     headerFont: "Palatino", bodyFont: "Helvetica"),
+        FontPairing(id: "verdana-georgia", name: "fontPairing.verdanaGeorgia",
+                     headerFont: "Verdana", bodyFont: "Georgia"),
+    ]
+
+    public static func pairing(byId id: String) -> FontPairing? {
+        pairings.first { $0.id == id }
+    }
+
+    public static var defaultPairing: FontPairing {
+        pairings[0]
+    }
+}

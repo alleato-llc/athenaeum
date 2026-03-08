@@ -1,9 +1,13 @@
 /* Reader toolbar */
 "Toggle sidebar" = "Mostra/nascondi barra laterale";
 "Font" = "Carattere";
-"font.pairing" = "Usa Abbinamento Caratteri";
-"font.header" = "Carattere Intestazione";
-"font.body" = "Carattere del Corpo";
+"font.pairing" = "Abbinamento Caratteri";
+"fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
+"fontPairing.helveticaPalatino" = "Helvetica + Palatino";
+"fontPairing.arialGeorgia" = "Arial + Georgia";
+"fontPairing.georgiaHelvetica" = "Georgia + Helvetica";
+"fontPairing.palatinoHelvetica" = "Palatino + Helvetica";
+"fontPairing.verdanaGeorgia" = "Verdana + Georgia";
 
 /* Reader navigation */
 "Previous" = "Precedente";

@@ -40,9 +40,14 @@
 "settings.library.browse" = "Browse…";
 "settings.reading" = "Reading";
 "settings.font" = "Default Font";
-"settings.font.pairing" = "Use Font Pairing";
-"settings.font.header" = "Header Font";
-"settings.font.body" = "Body Font";
+"settings.font.pairing" = "Font Pairing";
+"settings.font.pairing.none" = "None (single font)";
+"fontPairing.helveticaGeorgia" = "Helvetica + Georgia";
+"fontPairing.helveticaPalatino" = "Helvetica + Palatino";
+"fontPairing.arialGeorgia" = "Arial + Georgia";
+"fontPairing.georgiaHelvetica" = "Georgia + Helvetica";
+"fontPairing.palatinoHelvetica" = "Palatino + Helvetica";
+"fontPairing.verdanaGeorgia" = "Verdana + Georgia";
 "settings.theme.lightTheme" = "Default Light Theme";
 "settings.theme.darkTheme" = "Default Dark Theme";
 
