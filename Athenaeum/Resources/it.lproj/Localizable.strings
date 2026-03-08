@@ -40,6 +40,9 @@
 "settings.library.browse" = "Sfoglia…";
 "settings.reading" = "Lettura";
 "settings.font" = "Carattere Predefinito";
+"settings.font.pairing" = "Usa Abbinamento Caratteri";
+"settings.font.header" = "Carattere Intestazione";
+"settings.font.body" = "Carattere del Corpo";
 "settings.theme.lightTheme" = "Tema Chiaro Predefinito";
 "settings.theme.darkTheme" = "Tema Scuro Predefinito";
 

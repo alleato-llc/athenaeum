@@ -40,6 +40,9 @@
 "settings.library.browse" = "Examinar…";
 "settings.reading" = "Lectura";
 "settings.font" = "Fuente Predeterminada";
+"settings.font.pairing" = "Usar Combinación de Fuentes";
+"settings.font.header" = "Fuente de Encabezado";
+"settings.font.body" = "Fuente del Cuerpo";
 "settings.theme.lightTheme" = "Tema Claro Predeterminado";
 "settings.theme.darkTheme" = "Tema Oscuro Predeterminado";
 

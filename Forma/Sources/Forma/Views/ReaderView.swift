@@ -13,12 +13,15 @@ public struct ReaderView: View {
 
     public init(book: EPUBBook, libraryBookId: String? = nil,
                 lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
+                fontFamily: String = "Georgia", useFontPairing: Bool = false,
+                bodyFont: String = "Georgia",
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                 darkThemeId: String = "charcoal") {
         self.book = book
         _viewModel = StateObject(wrappedValue: ReaderViewModel(
             book: book, libraryBookId: libraryBookId,
             lastChapterIndex: lastChapterIndex, lastScrollPosition: lastScrollPosition,
+            fontFamily: fontFamily, useFontPairing: useFontPairing, bodyFont: bodyFont,
             themeMode: themeMode, lightThemeId: lightThemeId, darkThemeId: darkThemeId))
     }
 
@@ -188,6 +191,12 @@ struct ReaderToolbarView: View {
         }
     }
 
+    private func applyFonts() {
+        guard let webView = viewModel.webView else { return }
+        viewModel.themeManager.applyStyles(to: webView, fontFamily: viewModel.fontFamily,
+                                            bodyFont: viewModel.useFontPairing ? viewModel.bodyFont : nil)
+    }
+
     var body: some View {
         HStack {
             Button(action: { withAnimation { showSidebar.toggle() } }) {
@@ -202,10 +211,60 @@ struct ReaderToolbarView: View {
             Spacer()
 
             Menu {
-                ForEach(ReadingTheme.availableFonts, id: \.self) { font in
-                    Button(font) {
-                        viewModel.fontFamily = font
-                        viewModel.themeManager.applyStyles(to: viewModel.webView!, fontFamily: font)
+                Toggle(NSLocalizedString("font.pairing", bundle: bundle, comment: ""), isOn: Binding(
+                    get: { viewModel.useFontPairing },
+                    set: { newValue in
+                        viewModel.useFontPairing = newValue
+                        applyFonts()
+                    }
+                ))
+
+                Divider()
+
+                if viewModel.useFontPairing {
+                    Menu(NSLocalizedString("font.header", bundle: bundle, comment: "")) {
+                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                            Button {
+                                viewModel.fontFamily = font
+                                applyFonts()
+                            } label: {
+                                HStack {
+                                    Text(font)
+                                    if viewModel.fontFamily == font {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Menu(NSLocalizedString("font.body", bundle: bundle, comment: "")) {
+                        ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                            Button {
+                                viewModel.bodyFont = font
+                                applyFonts()
+                            } label: {
+                                HStack {
+                                    Text(font)
+                                    if viewModel.bodyFont == font {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ForEach(ReadingTheme.availableFonts, id: \.self) { font in
+                        Button {
+                            viewModel.fontFamily = font
+                            applyFonts()
+                        } label: {
+                            HStack {
+                                Text(font)
+                                if viewModel.fontFamily == font {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
                     }
                 }
             } label: {

@@ -1,6 +1,9 @@
 /* Reader toolbar */
 "Toggle sidebar" = "Alternar barra lateral";
 "Font" = "Fuente";
+"font.pairing" = "Usar Combinación de Fuentes";
+"font.header" = "Fuente de Encabezado";
+"font.body" = "Fuente del Cuerpo";
 
 /* Reader navigation */
 "Previous" = "Anterior";

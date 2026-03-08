@@ -1,6 +1,9 @@
 /* Reader toolbar */
 "Toggle sidebar" = "Toggle sidebar";
 "Font" = "Font";
+"font.pairing" = "Use Font Pairing";
+"font.header" = "Header Font";
+"font.body" = "Body Font";
 
 /* Reader navigation */
 "Previous" = "Previous";

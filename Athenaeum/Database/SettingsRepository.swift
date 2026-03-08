@@ -35,6 +35,8 @@ public class SettingsRepository {
     public func loadSettings() throws -> UserSettings {
         let libraryPath = try get("libraryPath") ?? UserSettings.defaultLibraryPath
         let defaultFont = try get("defaultFont") ?? "Georgia"
+        let useFontPairing = (try get("useFontPairing")) == "true"
+        let bodyFont = try get("bodyFont") ?? "Georgia"
 
         let themeMode: ThemeMode
         if let themeModeStr = try get("themeMode") {
@@ -49,6 +51,7 @@ public class SettingsRepository {
         let darkThemeId = try get("darkThemeId") ?? "charcoal"
 
         return UserSettings(libraryPath: libraryPath, defaultFont: defaultFont,
+                           useFontPairing: useFontPairing, bodyFont: bodyFont,
                            themeMode: themeMode, lightThemeId: lightThemeId,
                            darkThemeId: darkThemeId)
     }
@@ -56,6 +59,8 @@ public class SettingsRepository {
     public func saveSettings(_ settings: UserSettings) throws {
         try set("libraryPath", value: settings.libraryPath)
         try set("defaultFont", value: settings.defaultFont)
+        try set("useFontPairing", value: settings.useFontPairing ? "true" : "false")
+        try set("bodyFont", value: settings.bodyFont)
         try set("themeMode", value: settings.themeMode.rawValue)
         try set("lightThemeId", value: settings.lightThemeId)
         try set("darkThemeId", value: settings.darkThemeId)

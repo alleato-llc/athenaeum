@@ -46,42 +46,89 @@ public class ThemeManager: ObservableObject {
         activeTheme = Self.resolveTheme(mode: themeMode, light: lightTheme, dark: darkTheme)
     }
 
-    public func applyStyles(to webView: WKWebView, fontFamily: String) {
+    public func applyStyles(to webView: WKWebView, fontFamily: String, bodyFont: String? = nil) {
         let theme = activeTheme
-        let js = """
-        (function() {
-            var style = document.getElementById('focus-theme');
-            if (!style) {
-                style = document.createElement('style');
-                style.id = 'focus-theme';
-                document.head.appendChild(style);
-            }
-            style.textContent = `
-                body {
-                    font-family: '\(fontFamily)', serif !important;
-                    background-color: \(theme.backgroundColor) !important;
-                    color: \(theme.textColor) !important;
-                    line-height: 1.6 !important;
-                    max-width: 45em !important;
-                    margin: 0 auto !important;
-                    padding: 20px !important;
-                    transition: background-color 0.3s ease, color 0.3s ease !important;
+        let headingCSS: String
+        if let bodyFont = bodyFont {
+            // Font pairing: fontFamily for headings, bodyFont for body
+            headingCSS = """
+                h1, h2, h3, h4, h5, h6 {
+                    font-family: '\(fontFamily)', sans-serif !important;
                 }
-                * {
-                    font-family: inherit !important;
-                    color: inherit !important;
-                    background-color: transparent !important;
+            """
+            let bodyFontFamily = bodyFont
+            let js = """
+            (function() {
+                var style = document.getElementById('focus-theme');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'focus-theme';
+                    document.head.appendChild(style);
                 }
-                body { background-color: \(theme.backgroundColor) !important; }
-                a, a:visited { color: \(theme.linkColor) !important; }
-                img { max-width: 100% !important; height: auto !important; }
-                pre, code {
-                    background-color: \(theme.codeBackgroundColor) !important;
+                style.textContent = `
+                    body {
+                        font-family: '\(bodyFontFamily)', serif !important;
+                        background-color: \(theme.backgroundColor) !important;
+                        color: \(theme.textColor) !important;
+                        line-height: 1.6 !important;
+                        max-width: 45em !important;
+                        margin: 0 auto !important;
+                        padding: 20px !important;
+                        transition: background-color 0.3s ease, color 0.3s ease !important;
+                    }
+                    * {
+                        font-family: inherit !important;
+                        color: inherit !important;
+                        background-color: transparent !important;
+                    }
+                    \(headingCSS)
+                    body { background-color: \(theme.backgroundColor) !important; }
+                    a, a:visited { color: \(theme.linkColor) !important; }
+                    img { max-width: 100% !important; height: auto !important; }
+                    pre, code {
+                        background-color: \(theme.codeBackgroundColor) !important;
+                    }
+                `;
+            })();
+            """
+            webView.evaluateJavaScript(js)
+        } else {
+            // Single font: current behavior
+            let js = """
+            (function() {
+                var style = document.getElementById('focus-theme');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'focus-theme';
+                    document.head.appendChild(style);
                 }
-            `;
-        })();
-        """
-        webView.evaluateJavaScript(js)
+                style.textContent = `
+                    body {
+                        font-family: '\(fontFamily)', serif !important;
+                        background-color: \(theme.backgroundColor) !important;
+                        color: \(theme.textColor) !important;
+                        line-height: 1.6 !important;
+                        max-width: 45em !important;
+                        margin: 0 auto !important;
+                        padding: 20px !important;
+                        transition: background-color 0.3s ease, color 0.3s ease !important;
+                    }
+                    * {
+                        font-family: inherit !important;
+                        color: inherit !important;
+                        background-color: transparent !important;
+                    }
+                    body { background-color: \(theme.backgroundColor) !important; }
+                    a, a:visited { color: \(theme.linkColor) !important; }
+                    img { max-width: 100% !important; height: auto !important; }
+                    pre, code {
+                        background-color: \(theme.codeBackgroundColor) !important;
+                    }
+                `;
+            })();
+            """
+            webView.evaluateJavaScript(js)
+        }
     }
 
     private static func resolveTheme(mode: ThemeMode, light: ReadingTheme, dark: ReadingTheme) -> ReadingTheme {

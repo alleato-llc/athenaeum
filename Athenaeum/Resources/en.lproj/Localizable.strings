@@ -40,6 +40,9 @@
 "settings.library.browse" = "Browse…";
 "settings.reading" = "Reading";
 "settings.font" = "Default Font";
+"settings.font.pairing" = "Use Font Pairing";
+"settings.font.header" = "Header Font";
+"settings.font.body" = "Body Font";
 "settings.theme.lightTheme" = "Default Light Theme";
 "settings.theme.darkTheme" = "Default Dark Theme";
 

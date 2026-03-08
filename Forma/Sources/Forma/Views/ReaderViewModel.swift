@@ -14,6 +14,8 @@ public class ReaderViewModel: ObservableObject {
 
     @Published public var currentChapterIndex: Int = 0
     @Published public var fontFamily: String = "Georgia"
+    @Published public var useFontPairing: Bool = false
+    @Published public var bodyFont: String = "Georgia"
     @Published public var zoom: Double = 1.0
     @Published public var goToChapter: Int = 1
     @Published public var readingProgress: Double = 0
@@ -46,12 +48,17 @@ public class ReaderViewModel: ObservableObject {
 
     public init(book: EPUBBook, libraryBookId: String? = nil,
                 lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
+                fontFamily: String = "Georgia", useFontPairing: Bool = false,
+                bodyFont: String = "Georgia",
                 themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                 darkThemeId: String = "charcoal") {
         self.book = book
         self.libraryBookId = libraryBookId
         self.initialChapterIndex = lastChapterIndex
         self.initialScrollPosition = lastScrollPosition
+        self.fontFamily = fontFamily
+        self.useFontPairing = useFontPairing
+        self.bodyFont = bodyFont
         self.themeManager = ThemeManager(themeMode: themeMode, lightThemeId: lightThemeId,
                                          darkThemeId: darkThemeId)
 
@@ -357,7 +364,8 @@ public class ReaderViewModel: ObservableObject {
 
     private func applyThemeStyles() {
         guard let webView = webView else { return }
-        themeManager.applyStyles(to: webView, fontFamily: fontFamily)
+        themeManager.applyStyles(to: webView, fontFamily: fontFamily,
+                                  bodyFont: useFontPairing ? bodyFont : nil)
     }
 
     private func updateProgress() {

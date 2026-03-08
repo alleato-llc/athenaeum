@@ -157,6 +157,7 @@ See [docs/LOCALIZATION.md](docs/LOCALIZATION.md) for details on adding languages
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Detailed architecture and component documentation
 - [docs/DATABASE.md](docs/DATABASE.md) — Database: technology choices, schema, storage layout, migrations
 - [docs/LIBRARY.md](docs/LIBRARY.md) — Library feature: usage, relevant files, maintenance guide
+- [docs/FONTS.md](docs/FONTS.md) — Font system: available fonts, font pairing, CSS injection
 - [docs/LOCALIZATION.md](docs/LOCALIZATION.md) — Localization guide: supported languages, adding translations
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
 - [LICENSE](LICENSE) — MIT License

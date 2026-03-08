@@ -20,12 +20,18 @@ struct AthenaeumApp: App {
                     let libraryBookId = info["libraryBookId"] as? String
                     let lastChapterIndex = info["lastChapterIndex"] as? Int
                     let lastScrollPosition = info["lastScrollPosition"] as? Double
+                    let fontFamily = info["fontFamily"] as? String ?? "Georgia"
+                    let useFontPairing = info["useFontPairing"] as? Bool ?? false
+                    let bodyFont = info["bodyFont"] as? String ?? "Georgia"
                     let themeMode = info["themeMode"] as? ThemeMode ?? .system
                     let lightThemeId = info["lightThemeId"] as? String ?? "classic"
                     let darkThemeId = info["darkThemeId"] as? String ?? "charcoal"
                     BookWindowStore.shared.store(book, libraryBookId: libraryBookId,
                                                  lastChapterIndex: lastChapterIndex,
                                                  lastScrollPosition: lastScrollPosition,
+                                                 fontFamily: fontFamily,
+                                                 useFontPairing: useFontPairing,
+                                                 bodyFont: bodyFont,
                                                  themeMode: themeMode,
                                                  lightThemeId: lightThemeId,
                                                  darkThemeId: darkThemeId)
@@ -47,6 +53,9 @@ struct AthenaeumApp: App {
                 ReaderView(book: entry.book, libraryBookId: entry.libraryBookId,
                            lastChapterIndex: entry.lastChapterIndex,
                            lastScrollPosition: entry.lastScrollPosition,
+                           fontFamily: entry.fontFamily,
+                           useFontPairing: entry.useFontPairing,
+                           bodyFont: entry.bodyFont,
                            themeMode: entry.themeMode,
                            lightThemeId: entry.lightThemeId,
                            darkThemeId: entry.darkThemeId)
@@ -70,6 +79,9 @@ class BookWindowStore {
         let libraryBookId: String?
         let lastChapterIndex: Int?
         let lastScrollPosition: Double?
+        let fontFamily: String
+        let useFontPairing: Bool
+        let bodyFont: String
         let themeMode: ThemeMode
         let lightThemeId: String
         let darkThemeId: String
@@ -79,11 +91,16 @@ class BookWindowStore {
 
     func store(_ book: EPUBBook, libraryBookId: String? = nil,
                lastChapterIndex: Int? = nil, lastScrollPosition: Double? = nil,
+               fontFamily: String = "Georgia", useFontPairing: Bool = false,
+               bodyFont: String = "Georgia",
                themeMode: ThemeMode = .system, lightThemeId: String = "classic",
                darkThemeId: String = "charcoal") {
         entries[book.id] = Entry(book: book, libraryBookId: libraryBookId,
                                   lastChapterIndex: lastChapterIndex,
                                   lastScrollPosition: lastScrollPosition,
+                                  fontFamily: fontFamily,
+                                  useFontPairing: useFontPairing,
+                                  bodyFont: bodyFont,
                                   themeMode: themeMode,
                                   lightThemeId: lightThemeId,
                                   darkThemeId: darkThemeId)

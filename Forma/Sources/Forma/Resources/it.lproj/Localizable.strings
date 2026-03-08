@@ -1,6 +1,9 @@
 /* Reader toolbar */
 "Toggle sidebar" = "Mostra/nascondi barra laterale";
 "Font" = "Carattere";
+"font.pairing" = "Usa Abbinamento Caratteri";
+"font.header" = "Carattere Intestazione";
+"font.body" = "Carattere del Corpo";
 
 /* Reader navigation */
 "Previous" = "Precedente";
