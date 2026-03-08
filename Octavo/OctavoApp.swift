@@ -2,6 +2,12 @@ import SwiftUI
 import AppKit
 import Forma
 
+#if SWIFT_PACKAGE
+private let octavoBundle = Bundle.module
+#else
+private let octavoBundle = Bundle.main
+#endif
+
 @main
 struct OctavoApp: App {
     init() {
@@ -26,12 +32,12 @@ struct OctavoContentView: View {
                 ReaderView(book: book)
             } else {
                 VStack(spacing: 20) {
-                    Text(NSLocalizedString("app.name", bundle: .main, comment: ""))
+                    Text(NSLocalizedString("app.name", bundle: octavoBundle, comment: ""))
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                    Text(NSLocalizedString("landing.prompt", bundle: .main, comment: ""))
+                    Text(NSLocalizedString("landing.prompt", bundle: octavoBundle, comment: ""))
                         .foregroundColor(.secondary)
-                    Button(NSLocalizedString("landing.open", bundle: .main, comment: "")) {
+                    Button(NSLocalizedString("landing.open", bundle: octavoBundle, comment: "")) {
                         openFile()
                     }
                     .buttonStyle(.borderedProminent)
@@ -79,7 +85,7 @@ struct OctavoContentView: View {
             self.book = try parser.parse(at: url)
             self.errorMessage = nil
         } catch {
-            self.errorMessage = String(format: NSLocalizedString("error.open", bundle: .main, comment: ""), error.localizedDescription)
+            self.errorMessage = String(format: NSLocalizedString("error.open", bundle: octavoBundle, comment: ""), error.localizedDescription)
         }
     }
 }
