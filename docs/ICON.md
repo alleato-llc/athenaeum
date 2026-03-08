@@ -1,0 +1,78 @@
+# App Icons
+
+Both Athenaeum and Octavo have distinct app icons stored as macOS asset catalogs.
+
+## Design
+
+- **Athenaeum** — Deep blue background with a colorful bookshelf and the letter "A". Represents the library/catalog purpose.
+- **Octavo** — Brown/tan background with an open book and the letter "O". Represents the reader purpose.
+
+Icons were generated programmatically using Python (Pillow) — no external design tools required.
+
+## Asset Catalog Structure
+
+Each app has its own asset catalog at `<target>/Assets.xcassets/AppIcon.appiconset/`. macOS requires exactly 10 icon slots (5 logical sizes at 1x and 2x scale):
+
+| Size | 1x Filename | 2x Filename | 1x Pixels | 2x Pixels |
+|------|-------------|-------------|-----------|-----------|
+| 16x16 | icon_16x16@1x.png | icon_16x16@2x.png | 16 | 32 |
+| 32x32 | icon_32x32@1x.png | icon_32x32@2x.png | 32 | 64 |
+| 128x128 | icon_128x128@1x.png | icon_128x128@2x.png | 128 | 256 |
+| 256x256 | icon_256x256@1x.png | icon_256x256@2x.png | 256 | 512 |
+| 512x512 | icon_512x512@1x.png | icon_512x512@2x.png | 512 | 1024 |
+
+Each `Contents.json` maps filenames to their size/scale/idiom (`"mac"`) for Xcode's asset compiler.
+
+## Configuration
+
+Icons are wired up through two settings in `project.yml` for each target:
+
+```yaml
+info:
+  properties:
+    CFBundleIconName: AppIcon        # Tells macOS which asset catalog icon set to use
+
+settings:
+  base:
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon  # Tells Xcode which icon set to compile
+```
+
+Both keys must reference the same name as the `.appiconset` directory (minus the extension).
+
+## File Layout
+
+```
+Athenaeum/Assets.xcassets/
+├── Contents.json                        # Root asset catalog metadata
+└── AppIcon.appiconset/
+    ├── Contents.json                    # 10-slot icon manifest
+    ├── icon_16x16@1x.png
+    ├── icon_16x16@2x.png
+    ├── icon_32x32@1x.png
+    ├── icon_32x32@2x.png
+    ├── icon_128x128@1x.png
+    ├── icon_128x128@2x.png
+    ├── icon_256x256@1x.png
+    ├── icon_256x256@2x.png
+    ├── icon_512x512@1x.png
+    └── icon_512x512@2x.png
+
+Octavo/Assets.xcassets/
+└── (same structure, different icon images)
+```
+
+## Replacing Icons
+
+To replace an icon:
+
+1. Create PNG images at all 10 required pixel sizes (16, 32, 64, 128, 256, 512, 1024).
+2. Name them following the `icon_<size>@<scale>x.png` convention.
+3. Place them in the appropriate `AppIcon.appiconset/` directory.
+4. The `Contents.json` does not need to change unless filenames differ.
+5. Regenerate the Xcode project: `xcodegen generate`.
+
+## Troubleshooting
+
+- **"Unassigned children" warning**: The `Contents.json` has entries that don't match the standard macOS slots. macOS requires exactly the 5 sizes above at both scales — no 64x64 or 1024x1024 standalone slots.
+- **Icon not showing in Dock/toolbar**: Verify `CFBundleIconName: AppIcon` is in the Info.plist (set via `project.yml` info properties). Without this key, macOS won't look up the asset catalog icon.
+- **Icon not showing after build**: Clean the build folder (Product > Clean Build Folder in Xcode) and rebuild. macOS caches app icons aggressively.

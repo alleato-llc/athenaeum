@@ -2,6 +2,12 @@ import Foundation
 import AppKit
 import Ligature
 
+#if SWIFT_PACKAGE
+private let athenaeumBundle = Bundle.module
+#else
+private let athenaeumBundle = Bundle.main
+#endif
+
 public class BookImporter {
     private let bookRepository: BookRepository
     private let libraryPath: String
@@ -196,7 +202,7 @@ public enum ImportError: LocalizedError {
         case .unsupportedFormat(let ext): return "Unsupported file format: .\(ext)"
         case .coverConversionFailed: return "Failed to convert cover image"
         case .duplicateBook(let title):
-            return String(format: NSLocalizedString("import.error.duplicate", bundle: .module, comment: ""), title)
+            return String(format: NSLocalizedString("import.error.duplicate", bundle: athenaeumBundle, comment: ""), title)
         }
     }
 }
