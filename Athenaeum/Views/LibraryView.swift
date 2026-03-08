@@ -39,39 +39,43 @@ public struct LibraryView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            VStack(spacing: 4) {
-                Color.clear
-                    .frame(width: 200, height: 20)
+            HStack(spacing: 8) {
+                VStack(spacing: 4) {
+                    Color.clear
+                        .frame(width: 200, height: 20)
 
-                if showZoomOverlay {
-                    HStack(spacing: 8) {
-                        Button(action: { adjustCoverScale(-0.1) }) {
-                            Image(systemName: "minus")
+                    if showZoomOverlay {
+                        HStack(spacing: 8) {
+                            Button(action: { adjustCoverScale(-0.1) }) {
+                                Image(systemName: "minus")
+                            }
+                            .buttonStyle(.plain)
+
+                            Slider(value: $viewModel.coverScale, in: 0.5...2.0)
+                                .frame(width: 120)
+
+                            Button(action: { adjustCoverScale(0.1) }) {
+                                Image(systemName: "plus")
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-
-                        Slider(value: $viewModel.coverScale, in: 0.5...2.0)
-                            .frame(width: 120)
-
-                        Button(action: { adjustCoverScale(0.1) }) {
-                            Image(systemName: "plus")
-                        }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.bar)
+                        .cornerRadius(8)
+                        .transition(.opacity)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.bar)
-                    .cornerRadius(8)
-                    .transition(.opacity)
                 }
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showZoomOverlay = hovering
+                    }
+                }
+
+                ExportJobsButton(jobManager: viewModel.exportJobManager)
             }
             .padding(.trailing, 8)
             .padding(.bottom, 4)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showZoomOverlay = hovering
-                }
-            }
         }
         .frame(minWidth: 600, minHeight: 400)
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in

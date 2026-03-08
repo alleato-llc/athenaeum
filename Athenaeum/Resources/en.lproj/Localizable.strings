@@ -63,5 +63,17 @@
 "theme.monokai" = "Monokai";
 "theme.slate" = "Slate";
 
+/* Export */
+"library.export_pdf" = "Export As PDF\U2026";
+"export.jobs.tooltip" = "Export Jobs";
+"export.jobs.title" = "Exports";
+"export.jobs.clear" = "Clear Finished";
+"export.status.pending" = "Waiting\U2026";
+"export.status.saving" = "Saving\U2026";
+"export.status.completed" = "Completed";
+"export.status.cancelled" = "Cancelled";
+"export.cancel" = "Cancel";
+"export.progress.chapter" = "Chapter %d of %d";
+
 /* Import errors */
 "import.error.duplicate" = "A book titled \"%@\" by the same author already exists in your library.";

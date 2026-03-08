@@ -27,6 +27,7 @@ public class LibraryViewModel: ObservableObject {
     @Published public var editingBook: BookEntry?
     @Published public var selectedBookId: String?
     @Published public var coverScale: Double = 1.0
+    public let exportJobManager = ExportJobManager()
     public weak var window: NSWindow?
 
     private let bookRepository: BookRepository
@@ -151,6 +152,10 @@ public class LibraryViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    public func exportBookAsPDF(_ entry: BookEntry) {
+        exportJobManager.startExport(entry: entry, fontFamily: settings.bodyFont)
     }
 
     public func openBook(_ entry: BookEntry) {

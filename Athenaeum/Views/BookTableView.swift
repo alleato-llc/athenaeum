@@ -41,6 +41,10 @@ public struct BookTableView: View {
                 Button(NSLocalizedString("library.edit_metadata", bundle: bundle, comment: "")) {
                     viewModel.editingBook = entry
                 }
+                Button(NSLocalizedString("library.export_pdf", bundle: bundle, comment: "")) {
+                    viewModel.exportBookAsPDF(entry)
+                }
+                .disabled(entry.book.format != .epub)
                 Divider()
                 Button(NSLocalizedString("library.delete", bundle: bundle, comment: ""), role: .destructive) {
                     viewModel.deleteBook(entry)
