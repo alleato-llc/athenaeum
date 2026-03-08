@@ -15,6 +15,7 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 - EPUB 2 (NCX) and EPUB 3 (nav) table of contents support
 - Chapter and page navigation with keyboard shortcuts (left/right arrow keys)
 - Customizable font family and page zoom
+- Font pairing — curated header/body font combinations for improved typography
 - 10 named theme palettes (5 light, 5 dark) with three-mode toggle: light / dark / system
 - Collapsible table of contents sidebar
 - Auto-hiding toolbar and navigation bar for distraction-free reading
@@ -23,13 +24,30 @@ A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero exter
 
 ![Reader](./docs/photos/reader.png)
 
+### Annotations (Athenaeum only)
+
+When reading a book opened from the library, the full annotation toolkit is available:
+
+- **Highlighting** — Select text to highlight in 5 colors (yellow, green, blue, pink, orange). Eraser mode to remove individual highlights or erase all on the current page.
+- **Bookmarks** — Save chapter position with label, browse all bookmarks, click to navigate.
+- **Chapter notes** — Free-form text notes per chapter.
+- **Inline notes** — Notes anchored to selected text, highlighted in purple. View, edit, or delete by clicking.
+- **Undo/redo** — Cmd+Z / Shift+Cmd+Z for all annotation actions (highlights, notes, bookmarks).
+
+All annotations persist across sessions in the database.
+
 ### Library
 - Import EPUBs with automatic metadata and cover extraction
+- Import from directory — bulk-import all EPUBs from a folder with progress and summary
 - Duplicate import prevention (same title + author)
 - Grid view with cover thumbnails or table view with sortable columns
 - Search by title or author
 - Edit metadata and replace cover art
+- Export as PDF — render EPUB to PDF with table of contents outline and caching
+- Review chapter notes — browse all notes for a book without opening the reader
+- Library export/import — back up or restore your entire library as a single `.athenaeumlib` file
 - Configurable default light and dark themes with color previews
+- Author/title directory layout for organized book storage
 - Localized for English, Spanish, and Italian
 
 ![Settings](./docs/photos/settings.png)
@@ -55,6 +73,7 @@ open Athenaeum.xcodeproj # Open in Xcode, select Athenaeum or Octavo scheme
 swift build            # Build all targets
 swift run Octavo       # Run the EPUB reader
 swift run Athenaeum    # Run the library app
+swift test             # Run tests
 ```
 
 ## Project Structure
@@ -62,15 +81,24 @@ swift run Athenaeum    # Run the library app
 ```
 Athenaeum/       # Library app (com.alleato.athenaeum)
 Octavo/          # EPUB reader app (com.alleato.octavo)
-Forma/          # Shared UI library: reader views, theme management
+Forma/           # Shared UI library: reader views, theme management
 Ligature/        # Shared backend library: EPUB parsing, core models
+Tests/           # Test suites
 docs/            # Documentation
 project.yml      # Xcode project spec (xcodegen)
 ```
 
 Both app targets depend on **Forma**, which depends on **Ligature**. SQLite is linked only by the Athenaeum target.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Architecture and component documentation
+- [docs/DATABASE.md](docs/DATABASE.md) — Database schema, storage layout, migrations
+- [docs/LIBRARY.md](docs/LIBRARY.md) — Library feature guide
+- [docs/FONTS.md](docs/FONTS.md) — Font system and font pairing
+- [docs/IMPORT_EXPORT.md](docs/IMPORT_EXPORT.md) — Library backup/restore, directory import
+- [docs/LOCALIZATION.md](docs/LOCALIZATION.md) — Localization guide
+- [docs/TESTING.md](docs/TESTING.md) — Testing conventions and fixtures
 
 ## Naming
 

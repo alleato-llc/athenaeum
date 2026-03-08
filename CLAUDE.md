@@ -39,13 +39,14 @@ Ligature/Sources/Ligature/
 │   ├── EPUBBook.swift          # Runtime model for reader (title, author, spine, TOC)
 │   ├── EPUBMetadata.swift      # Metadata with EPUB 2/3 version enum
 │   ├── ReadingTheme.swift      # Named theme palettes (light/dark), available fonts
-│   └── ThemeMode.swift         # Light/dark/system enum
+│   ├── ThemeMode.swift         # Light/dark/system enum
+│   └── Highlight.swift         # Highlight, HighlightColor, Bookmark, and InlineNote models
 ├── Parser/
 │   ├── EPUBParser.swift        # Top-level: extract zip, parse OPF, build EPUBBook
 │   ├── ContainerXMLParser.swift
 │   ├── OPFParser.swift
 │   └── TOCParser.swift         # EPUB2 (NCX) and EPUB3 (nav) parsers
-└── Notifications.swift         # Shared notification names
+└── Notifications.swift         # Shared notification names (progress, highlights, bookmarks, notes)
 ```
 
 ### Forma Layout
@@ -55,10 +56,16 @@ Common UI — reader views shared by both apps.
 ```
 Forma/Sources/Forma/
 ├── Views/
-│   ├── ReaderView.swift        # Reader: sidebar, auto-hiding toolbar/nav bar
-│   ├── ReaderViewModel.swift   # Chapter nav, font/zoom, page counting
+│   ├── ReaderView.swift        # Reader: sidebar, auto-hiding toolbar/nav bar, undo/redo
+│   ├── ReaderViewModel.swift   # Chapter nav, font/zoom, page counting, highlight/note engines, undo
+│   ├── HighlightPopoverView.swift # Highlight/eraser controls, color palette
+│   ├── BookmarkPopoverView.swift  # Bookmark list and add/delete controls
+│   ├── NotePopoverView.swift      # Inline note mode toggle, editor/detail sheets
+│   ├── ChapterNotesView.swift     # Chapter-level notes editor popover
 │   ├── ThemeManager.swift      # Theme resolution, CSS injection, system appearance KVO
-│   └── EPUBWebView.swift       # WKWebView wrapper for rendering chapters
+│   └── EPUBWebView.swift       # WKWebView wrapper, highlight/note message handlers
+├── Export/
+│   └── PDFExportService.swift  # Renders EPUB chapters to PDF via hidden WKWebView
 ├── Exports.swift               # @_exported import Ligature
 └── Resources/
     └── {en,es,it}.lproj/       # Reader localized strings
@@ -74,22 +81,34 @@ Athenaeum/
 ├── Database/
 │   ├── LibraryDatabase.swift   # SQLite connection, migrations
 │   ├── BookRepository.swift    # CRUD for books + authors, search
-│   └── SettingsRepository.swift # Key-value settings store
+│   ├── HighlightRepository.swift # CRUD for text highlights (JSON per chapter)
+│   ├── BookmarkRepository.swift  # CRUD for bookmarks
+│   ├── NoteRepository.swift       # CRUD for chapter notes and inline notes
+│   ├── ChapterRepository.swift   # Chapter row management (ensure exists)
+│   └── SettingsRepository.swift # Key-value settings store (incl. language)
+├── Export/
+│   └── ExportJobManager.swift  # Manages PDF export jobs: start, cancel, track progress
 ├── Import/
 │   ├── BookImporter.swift      # Orchestrates: copy file, extract metadata/cover, insert
+│   ├── BookPathBuilder.swift   # Author/title directory path construction + sanitization
 │   ├── MetadataExtractor.swift # Protocol + EPUB extractor + fallback
-│   └── CoverExtractor.swift    # Protocol + EPUB cover extractor
+│   ├── CoverExtractor.swift    # Protocol + EPUB cover extractor
+│   ├── DirectoryScanner.swift  # Bulk scan + import from directory
+│   └── DirectoryImportResult.swift # Result models: SkippedFile, FailedImport
 ├── Models/
 │   ├── LibraryBook.swift       # Persistent model (metadata, format, identifiers JSON)
 │   ├── Author.swift            # Author model (many-to-many with books)
-│   └── UserSettings.swift      # Settings: library path, font, theme mode, theme IDs
+│   └── UserSettings.swift      # Settings: library path, font, theme mode, theme IDs, language
 ├── Views/
 │   ├── LibraryView.swift       # Library: toolbar, empty state, drag-and-drop
-│   ├── LibraryViewModel.swift  # Library business logic: import, delete, search
+│   ├── LibraryViewModel.swift  # Library business logic: import, delete, search, highlights, notes
+│   ├── ExportJobsButton.swift  # Toolbar export jobs indicator with progress popover
 │   ├── BookGridView.swift      # Scrollable grid of cover thumbnails
 │   ├── BookTableView.swift     # Table: title, author, year, format, genre
 │   ├── BookEditView.swift      # Metadata edit sheet with cover replacement
-│   └── SettingsView.swift      # Settings: library path, font, theme
+│   ├── ChapterNotesReviewView.swift # Review all notes for a book (sidebar + detail)
+│   ├── DirectoryImportSummaryView.swift # Summary sheet for bulk directory import
+│   └── SettingsView.swift      # Tabbed settings: General, Reading, Library Data
 └── Resources/
     └── {en,es,it}.lproj/       # Library localized strings
 ```
@@ -107,8 +126,10 @@ open Athenaeum.xcodeproj # Open in Xcode, select Athenaeum or Octavo scheme
 
 ```sh
 swift build            # Build all targets via SwiftPM
+swift test             # Run AthenaeumTests
 swift run Octavo       # Run the standalone EPUB reader
 swift run Athenaeum    # Run the library app
+cd Ligature && swift test  # Run LigatureTests
 ```
 
 ## Key Technical Details
@@ -146,6 +167,12 @@ These rules must be followed in all code changes:
 
 6. **Module boundaries.** Ligature contains only backend code (parser, models) with no UI dependencies. Forma contains shared UI (reader). Library-specific code (database, import, library views) lives in Athenaeum.
 
+## Testing
+
+Tests use Swift Testing (`@Suite`, `@Test`, `#expect()`) with real SQLite databases and real EPUB fixtures (Project Gutenberg). No mocks. Shared helpers in `Tests/AthenaeumTests/TestHelpers.swift` provide `TestDatabase`, `TestImportEnvironment`, `TestData`, and `TestFixtures`.
+
+See [docs/TESTING.md](docs/TESTING.md) for conventions, fixtures, and adding tests.
+
 ## Localization
 
 The app is localized for English, Spanish, and Italian using `.strings` files. Each target (Forma, Octavo, Athenaeum) has its own localization resources under a `Resources/` directory.
@@ -158,6 +185,8 @@ See [docs/LOCALIZATION.md](docs/LOCALIZATION.md) for details on adding languages
 - [docs/DATABASE.md](docs/DATABASE.md) — Database: technology choices, schema, storage layout, migrations
 - [docs/LIBRARY.md](docs/LIBRARY.md) — Library feature: usage, relevant files, maintenance guide
 - [docs/FONTS.md](docs/FONTS.md) — Font system: available fonts, font pairing, CSS injection
+- [docs/IMPORT_EXPORT.md](docs/IMPORT_EXPORT.md) — Import & export: library backup/restore, directory import
 - [docs/LOCALIZATION.md](docs/LOCALIZATION.md) — Localization guide: supported languages, adding translations
+- [docs/TESTING.md](docs/TESTING.md) — Testing: conventions, shared helpers, fixtures, adding tests
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
 - [LICENSE](LICENSE) — MIT License

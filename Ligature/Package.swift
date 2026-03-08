@@ -9,6 +9,12 @@ let package = Package(
         .library(name: "Ligature", targets: ["Ligature"])
     ],
     targets: [
-        .target(name: "Ligature", path: "Sources/Ligature")
+        .target(name: "Ligature", path: "Sources/Ligature"),
+        .testTarget(
+            name: "LigatureTests",
+            dependencies: ["Ligature"],
+            path: "Tests/LigatureTests",
+            resources: [.copy("Resources")]
+        )
     ]
 )

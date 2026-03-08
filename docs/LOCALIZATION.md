@@ -33,7 +33,7 @@ Athenaeum/Resources/
 
 ### What lives where
 
-- **Forma** — Strings used in the shared reader UI: toolbar labels, navigation buttons, mode labels, window title format.
+- **Forma** — Strings used in the shared reader UI: toolbar labels, navigation buttons, mode labels, highlighter controls, bookmark controls, window title format.
 - **Octavo** — Strings specific to the reader app: landing screen text, file open prompts, error messages.
 - **Athenaeum** — Strings specific to the library app: library UI labels, settings, table columns, edit sheet, theme names, import errors.
 
@@ -69,6 +69,16 @@ Athenaeum/Resources/
 - Simple words used directly as labels: use the English word as the key (e.g., `"Previous"`, `"Font"`)
 - Structured keys for longer or contextual strings: use dot notation (e.g., `"landing.prompt"`, `"nav.mode.hint"`, `"title.progress"`)
 - Format strings: include the format specifier in the key when the key is the English text (e.g., `"of %d"`)
+
+## Language Setting
+
+Athenaeum includes an in-app language picker in Settings. Users can choose from:
+- **System Default** — follows the macOS system language
+- **English**, **Spanish**, **Italian** — forces a specific language
+
+The setting is stored in the database via `SettingsRepository` and applied by setting `UserDefaults.standard.set([code], forKey: "AppleLanguages")`. Changes require restarting the app to take effect. The UI shows a hint when the selected language differs from the current setting.
+
+Language names are displayed in their native form (e.g., "Español" not "Spanish") so users can identify their language regardless of the current locale.
 
 ## Testing
 

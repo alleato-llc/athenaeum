@@ -25,7 +25,8 @@ let package = Package(
         .testTarget(
             name: "AthenaeumTests",
             dependencies: ["Athenaeum"],
-            path: "Tests/AthenaeumTests"
+            path: "Tests/AthenaeumTests",
+            resources: [.copy("Resources")]
         )
     ]
 )

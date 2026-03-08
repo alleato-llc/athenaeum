@@ -6,25 +6,11 @@ import Foundation
 struct BookImporterTests {
     private let fm = FileManager.default
 
-    private func makeTestEnv() throws -> (BookImporter, BookRepository, String) {
-        let tempDir = fm.temporaryDirectory
-            .appendingPathComponent("athenaeum-test-\(UUID().uuidString)")
-        let libraryPath = tempDir.path
-        try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        let dbPath = tempDir.appendingPathComponent("library.db").path
-        let db = try LibraryDatabase(path: dbPath)
-        let repo = BookRepository(database: db)
-        let importer = BookImporter(bookRepository: repo, libraryPath: libraryPath)
-        return (importer, repo, libraryPath)
-    }
-
     /// Creates a book file on disk in the new directory layout and inserts it into the database.
     @discardableResult
-    private func createBookOnDisk(repo: BookRepository, libraryPath: String,
-                                   id: String, title: String, authorName: String,
-                                   withCover: Bool = false) throws -> (LibraryBook, String, String?) {
-        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+    private func createBookOnDisk(env: TestImportEnvironment, id: String, title: String,
+                                   authorName: String, withCover: Bool = false) throws -> (LibraryBook, String, String?) {
+        let pathBuilder = BookPathBuilder(libraryPath: env.libraryPath)
         let bookDir = pathBuilder.bookDirectory(authorName: authorName, title: title)
         try fm.createDirectory(atPath: bookDir, withIntermediateDirectories: true)
 
@@ -41,7 +27,7 @@ struct BookImporterTests {
 
         let book = LibraryBook(id: id, title: title, format: .epub,
                                coverPath: coverPath, filePath: bookPath)
-        try repo.insert(book: book, authors: [Author(name: authorName)])
+        try env.bookRepo.insert(book: book, authors: [Author(name: authorName)])
         return (book, bookPath, coverPath)
     }
 
@@ -49,50 +35,46 @@ struct BookImporterTests {
 
     @Test("Delete removes book file from disk")
     func deleteRemovesFile() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (book, bookPath, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                        id: "b1", title: "Test Book",
+        let (book, bookPath, _) = try createBookOnDisk(env: env, id: "b1", title: "Test Book",
                                                         authorName: "Test Author")
 
         #expect(fm.fileExists(atPath: bookPath), "Book file should exist before delete")
 
-        try importer.deleteBook(book)
+        try env.importer.deleteBook(book)
 
         #expect(!fm.fileExists(atPath: bookPath), "Book file should be removed after delete")
     }
 
     @Test("Delete removes cover file from disk")
     func deleteRemovesCover() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (book, _, coverPath) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                         id: "b1", title: "Test Book",
-                                                         authorName: "Test Author",
-                                                         withCover: true)
+        let (book, _, coverPath) = try createBookOnDisk(env: env, id: "b1", title: "Test Book",
+                                                         authorName: "Test Author", withCover: true)
 
         #expect(fm.fileExists(atPath: coverPath!), "Cover should exist before delete")
 
-        try importer.deleteBook(book)
+        try env.importer.deleteBook(book)
 
         #expect(!fm.fileExists(atPath: coverPath!), "Cover should be removed after delete")
     }
 
     @Test("Delete cleans up empty parent directories")
     func deleteRemovesEmptyDirectories() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (book, _, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                 id: "b1", title: "Test Book",
+        let (book, _, _) = try createBookOnDisk(env: env, id: "b1", title: "Test Book",
                                                  authorName: "Test Author")
 
-        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+        let pathBuilder = BookPathBuilder(libraryPath: env.libraryPath)
         let bookDir = pathBuilder.bookDirectory(authorName: "Test Author", title: "Test Book")
 
-        try importer.deleteBook(book)
+        try env.importer.deleteBook(book)
 
         // Title, author, and prefix directories should all be cleaned up
         #expect(!fm.fileExists(atPath: bookDir), "Empty title directory should be removed")
@@ -106,21 +88,19 @@ struct BookImporterTests {
 
     @Test("Delete preserves directories when other books remain")
     func deletePreservesSharedDirectories() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (book1, _, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                  id: "b1", title: "Book One",
+        let (book1, _, _) = try createBookOnDisk(env: env, id: "b1", title: "Book One",
                                                   authorName: "Shared Author")
-        let (_, bookPath2, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                      id: "b2", title: "Book Two",
+        let (_, bookPath2, _) = try createBookOnDisk(env: env, id: "b2", title: "Book Two",
                                                       authorName: "Shared Author")
 
-        try importer.deleteBook(book1)
+        try env.importer.deleteBook(book1)
 
         #expect(fm.fileExists(atPath: bookPath2), "Other book file should be preserved")
 
-        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+        let pathBuilder = BookPathBuilder(libraryPath: env.libraryPath)
         let authorDir = (pathBuilder.bookDirectory(authorName: "Shared Author", title: "Book Two") as NSString)
             .deletingLastPathComponent
         #expect(fm.fileExists(atPath: authorDir), "Author directory should be preserved")
@@ -128,46 +108,45 @@ struct BookImporterTests {
 
     @Test("Delete removes book from database")
     func deleteRemovesFromDatabase() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (book, _, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                 id: "b1", title: "Test Book",
+        let (book, _, _) = try createBookOnDisk(env: env, id: "b1", title: "Test Book",
                                                  authorName: "Test Author")
 
-        try importer.deleteBook(book)
+        try env.importer.deleteBook(book)
 
-        #expect(try repo.fetchAll().isEmpty, "Book should be removed from database")
+        #expect(try env.bookRepo.fetchAll().isEmpty, "Book should be removed from database")
     }
 
     @Test("Delete tolerates missing files on disk")
     func deleteHandlesMissingFile() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
         let book = LibraryBook(id: "b1", title: "Ghost Book", format: .epub,
                                filePath: "/nonexistent/path.epub")
-        try repo.insert(book: book, authors: [])
+        try env.bookRepo.insert(book: book, authors: [])
 
         // Should not throw
-        try importer.deleteBook(book)
+        try env.importer.deleteBook(book)
 
-        #expect(try repo.fetchAll().isEmpty)
+        #expect(try env.bookRepo.fetchAll().isEmpty)
     }
 
     // MARK: - Import validation
 
     @Test("Import rejects unsupported file format")
     func importRejectsUnsupported() throws {
-        let (importer, _, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
         let tempFile = fm.temporaryDirectory.appendingPathComponent("test-\(UUID().uuidString).docx")
         fm.createFile(atPath: tempFile.path, contents: "test".data(using: .utf8))
         defer { try? fm.removeItem(at: tempFile) }
 
         #expect(throws: ImportError.self) {
-            try importer.importBook(from: tempFile)
+            try env.importer.importBook(from: tempFile)
         }
     }
 
@@ -175,13 +154,13 @@ struct BookImporterTests {
 
     @Test("Migration moves files from flat layout to author/title structure")
     func migrateMovesFiles() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
         // Simulate old flat layout
         let bookId = "old-book-id"
-        let oldBooksDir = (libraryPath as NSString).appendingPathComponent("books")
-        let oldCoversDir = (libraryPath as NSString).appendingPathComponent("covers")
+        let oldBooksDir = (env.libraryPath as NSString).appendingPathComponent("books")
+        let oldCoversDir = (env.libraryPath as NSString).appendingPathComponent("covers")
         try fm.createDirectory(atPath: oldBooksDir, withIntermediateDirectories: true)
         try fm.createDirectory(atPath: oldCoversDir, withIntermediateDirectories: true)
 
@@ -192,13 +171,13 @@ struct BookImporterTests {
 
         let book = LibraryBook(id: bookId, title: "Old Book", format: .epub,
                                coverPath: oldCoverPath, filePath: oldBookPath)
-        try repo.insert(book: book, authors: [Author(name: "Old Author")])
+        try env.bookRepo.insert(book: book, authors: [Author(name: "Old Author")])
 
         // Run migration
-        importer.migrateStorageLayout(books: try repo.fetchAll())
+        env.importer.migrateStorageLayout(books: try env.bookRepo.fetchAll())
 
         // Verify new paths
-        let pathBuilder = BookPathBuilder(libraryPath: libraryPath)
+        let pathBuilder = BookPathBuilder(libraryPath: env.libraryPath)
         let newBookPath = pathBuilder.bookFilePath(authorName: "Old Author", title: "Old Book",
                                                     bookId: bookId, fileExtension: "epub")
         let newCoverPath = pathBuilder.coverFilePath(authorName: "Old Author", title: "Old Book",
@@ -210,35 +189,34 @@ struct BookImporterTests {
         #expect(!fm.fileExists(atPath: oldCoverPath), "Old cover path should be gone")
 
         // Verify database updated
-        let updated = try repo.fetchAll()
+        let updated = try env.bookRepo.fetchAll()
         #expect(updated[0].book.filePath == newBookPath)
         #expect(updated[0].book.coverPath == newCoverPath)
     }
 
     @Test("Migration skips books already at new path")
     func migrateSkipsAlreadyMigrated() throws {
-        let (importer, repo, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let (_, bookPath, _) = try createBookOnDisk(repo: repo, libraryPath: libraryPath,
-                                                     id: "b1", title: "Already New",
+        let (_, bookPath, _) = try createBookOnDisk(env: env, id: "b1", title: "Already New",
                                                      authorName: "Author")
 
-        importer.migrateStorageLayout(books: try repo.fetchAll())
+        env.importer.migrateStorageLayout(books: try env.bookRepo.fetchAll())
 
         #expect(fm.fileExists(atPath: bookPath))
-        #expect(try repo.fetchAll()[0].book.filePath == bookPath)
+        #expect(try env.bookRepo.fetchAll()[0].book.filePath == bookPath)
     }
 
     @Test("Migration cleans up empty covers directory")
     func migrateCleansUpCoversDir() throws {
-        let (importer, _, libraryPath) = try makeTestEnv()
-        defer { try? fm.removeItem(atPath: libraryPath) }
+        let env = try TestImportEnvironment.create()
+        defer { env.cleanup() }
 
-        let oldCoversDir = (libraryPath as NSString).appendingPathComponent("covers")
+        let oldCoversDir = (env.libraryPath as NSString).appendingPathComponent("covers")
         try fm.createDirectory(atPath: oldCoversDir, withIntermediateDirectories: true)
 
-        importer.migrateStorageLayout(books: [])
+        env.importer.migrateStorageLayout(books: [])
 
         #expect(!fm.fileExists(atPath: oldCoversDir), "Empty covers/ should be cleaned up")
     }
