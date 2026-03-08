@@ -26,12 +26,12 @@ struct OctavoContentView: View {
                 ReaderView(book: book)
             } else {
                 VStack(spacing: 20) {
-                    Text(NSLocalizedString("app.name", bundle: .module, comment: ""))
+                    Text(NSLocalizedString("app.name", bundle: .main, comment: ""))
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                    Text(NSLocalizedString("landing.prompt", bundle: .module, comment: ""))
+                    Text(NSLocalizedString("landing.prompt", bundle: .main, comment: ""))
                         .foregroundColor(.secondary)
-                    Button(NSLocalizedString("landing.open", bundle: .module, comment: "")) {
+                    Button(NSLocalizedString("landing.open", bundle: .main, comment: "")) {
                         openFile()
                     }
                     .buttonStyle(.borderedProminent)
@@ -79,7 +79,7 @@ struct OctavoContentView: View {
             self.book = try parser.parse(at: url)
             self.errorMessage = nil
         } catch {
-            self.errorMessage = String(format: NSLocalizedString("error.open", bundle: .module, comment: ""), error.localizedDescription)
+            self.errorMessage = String(format: NSLocalizedString("error.open", bundle: .main, comment: ""), error.localizedDescription)
         }
     }
 }

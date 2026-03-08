@@ -3,7 +3,7 @@
 Ligature/.build/
 Package.resolved
 
-# Xcode
+# Xcode (generated from project.yml via xcodegen)
 *.xcodeproj/
 *.xcworkspace/
 xcuserdata/
