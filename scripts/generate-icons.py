@@ -59,12 +59,12 @@ def draw_athenaeum_icon(size):
     draw = ImageDraw.Draw(img)
 
     # Background
-    bg_color = (75, 90, 135)
+    bg_color = (85, 40, 50)
     radius = int(size * 0.18)
     draw.rounded_rectangle([(0, 0), (size - 1, size - 1)], radius=radius, fill=bg_color)
 
     # Subtle darker edge for depth
-    edge_color = (60, 72, 110)
+    edge_color = (65, 30, 38)
     draw.rounded_rectangle([(0, 0), (size - 1, size - 1)], radius=radius, outline=edge_color, width=max(1, size // 256))
 
     # Shelf
@@ -138,7 +138,7 @@ def draw_athenaeum_icon(size):
     # Letter "A" at top
     font_size = int(size * 0.1)
     font = get_font(font_size)
-    letter_color = (180, 190, 215)
+    letter_color = (200, 170, 175)
     bbox = draw.textbbox((0, 0), "A", font=font)
     text_w = bbox[2] - bbox[0]
     text_x = (size - text_w) // 2
