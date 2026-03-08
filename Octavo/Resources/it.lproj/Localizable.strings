@@ -1,0 +1,5 @@
+/* Landing screen */
+"app.name" = "Octavo";
+"landing.prompt" = "Trascina un file EPUB o clicca per aprire";
+"landing.open" = "Apri EPUB";
+"error.open" = "Impossibile aprire: %@";

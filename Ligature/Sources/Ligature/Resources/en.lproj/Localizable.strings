@@ -1,0 +1,72 @@
+/* Reader toolbar */
+"Toggle sidebar" = "Toggle sidebar";
+"Font" = "Font";
+
+/* Reader navigation */
+"Previous" = "Previous";
+"Next" = "Next";
+"Page" = "Page";
+"Chapter" = "Chapter";
+"of %d" = "of %d";
+"nav.mode.hint" = "Double-click to switch between Page and Chapter mode";
+
+/* Window title */
+"title.progress" = "Octavo | %d%% Complete";
+
+/* Library toolbar */
+"library.settings" = "Settings";
+"library.search" = "Search by title or author";
+"library.add" = "Add book";
+
+/* Library empty state */
+"library.empty.title" = "Your Library";
+"library.empty.subtitle" = "Drag and drop books here or click + to add";
+"library.no_results" = "No books found.";
+
+/* Library context menu */
+"library.edit_metadata" = "Edit Metadata";
+"library.delete" = "Delete from Library";
+
+/* Library table columns */
+"library.column.title" = "Title";
+"library.column.author" = "Author";
+"library.column.year" = "Year";
+"library.column.format" = "Format";
+"library.column.genre" = "Genre";
+
+/* Edit metadata */
+"edit.title" = "Edit Metadata";
+"edit.cover.hint" = "Click or drop to change";
+"edit.field.title" = "Title";
+"edit.field.authors" = "Authors (comma-separated)";
+"edit.field.year" = "Year";
+"edit.field.genre" = "Genre";
+"edit.field.pages" = "Pages";
+"edit.field.isbn" = "ISBN";
+"edit.cancel" = "Cancel";
+"edit.save" = "Save";
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.library" = "Library";
+"settings.library.path" = "Library Path";
+"settings.library.browse" = "Browse…";
+"settings.reading" = "Reading";
+"settings.font" = "Default Font";
+"settings.theme.lightTheme" = "Default Light Theme";
+"settings.theme.darkTheme" = "Default Dark Theme";
+
+/* Theme names */
+"theme.classic" = "Classic";
+"theme.sepia" = "Sepia";
+"theme.paper" = "Paper";
+"theme.ivory" = "Ivory";
+"theme.sage" = "Sage";
+"theme.charcoal" = "Charcoal";
+"theme.midnight" = "Midnight";
+"theme.solarizedDark" = "Solarized Dark";
+"theme.monokai" = "Monokai";
+"theme.slate" = "Slate";
+
+/* Import errors */
+"import.error.duplicate" = "A book titled \"%@\" by the same author already exists in your library.";

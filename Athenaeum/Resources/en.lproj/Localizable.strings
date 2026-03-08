@@ -1,0 +1,6 @@
+/* Library screen */
+"app.name" = "Athenaeum";
+"library.coming_soon" = "Your library is coming soon.";
+
+/* File menu */
+"library.add" = "Add Books…";

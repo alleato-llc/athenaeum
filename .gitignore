@@ -1,0 +1,24 @@
+# Swift Package Manager
+.build/
+Ligature/.build/
+Package.resolved
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Claude Code
+.claude/settings.local.json

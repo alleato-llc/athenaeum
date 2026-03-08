@@ -1,0 +1,72 @@
+/* Reader toolbar */
+"Toggle sidebar" = "Alternar barra lateral";
+"Font" = "Fuente";
+
+/* Reader navigation */
+"Previous" = "Anterior";
+"Next" = "Siguiente";
+"Page" = "Página";
+"Chapter" = "Capítulo";
+"of %d" = "de %d";
+"nav.mode.hint" = "Doble clic para cambiar entre modo Página y Capítulo";
+
+/* Window title */
+"title.progress" = "Octavo | %d%% Completado";
+
+/* Library toolbar */
+"library.settings" = "Configuración";
+"library.search" = "Buscar por título o autor";
+"library.add" = "Agregar libro";
+
+/* Library empty state */
+"library.empty.title" = "Tu Biblioteca";
+"library.empty.subtitle" = "Arrastra y suelta libros aquí o haz clic en + para agregar";
+"library.no_results" = "No se encontraron libros.";
+
+/* Library context menu */
+"library.edit_metadata" = "Editar Metadatos";
+"library.delete" = "Eliminar de la Biblioteca";
+
+/* Library table columns */
+"library.column.title" = "Título";
+"library.column.author" = "Autor";
+"library.column.year" = "Año";
+"library.column.format" = "Formato";
+"library.column.genre" = "Género";
+
+/* Edit metadata */
+"edit.title" = "Editar Metadatos";
+"edit.cover.hint" = "Clic o arrastra para cambiar";
+"edit.field.title" = "Título";
+"edit.field.authors" = "Autores (separados por coma)";
+"edit.field.year" = "Año";
+"edit.field.genre" = "Género";
+"edit.field.pages" = "Páginas";
+"edit.field.isbn" = "ISBN";
+"edit.cancel" = "Cancelar";
+"edit.save" = "Guardar";
+
+/* Settings */
+"settings.title" = "Configuración";
+"settings.library" = "Biblioteca";
+"settings.library.path" = "Ruta de la Biblioteca";
+"settings.library.browse" = "Examinar…";
+"settings.reading" = "Lectura";
+"settings.font" = "Fuente Predeterminada";
+"settings.theme.lightTheme" = "Tema Claro Predeterminado";
+"settings.theme.darkTheme" = "Tema Oscuro Predeterminado";
+
+/* Theme names */
+"theme.classic" = "Clásico";
+"theme.sepia" = "Sepia";
+"theme.paper" = "Papel";
+"theme.ivory" = "Marfil";
+"theme.sage" = "Salvia";
+"theme.charcoal" = "Carbón";
+"theme.midnight" = "Medianoche";
+"theme.solarizedDark" = "Solarizado Oscuro";
+"theme.monokai" = "Monokai";
+"theme.slate" = "Pizarra";
+
+/* Import errors */
+"import.error.duplicate" = "Un libro titulado \"%@\" del mismo autor ya existe en tu biblioteca.";
