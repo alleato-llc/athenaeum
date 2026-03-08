@@ -2,6 +2,9 @@
 
 A macOS EPUB reader built with Swift and SwiftUI. Zero external dependencies.
 
+![Library](./docs/photos/library.png)
+![Reader](./docs/photos/reader.png)
+
 ## Apps
 
 - **Octavo** — EPUB reader with support for EPUB 2 and EPUB 3 formats. Open files via file picker or drag-and-drop, navigate chapters, customize fonts and zoom, toggle dark mode.
