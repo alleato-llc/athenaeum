@@ -40,20 +40,20 @@ public class PDFExportService {
         self.fontFamily = fontFamily
         isCancelled = false
 
-        DispatchQueue.main.async { [weak self] in
-            self?.setupWebView()
-            self?.renderChapters(book: book, chapterIndex: 0,
-                                 cumulativeDocument: PDFDocument(),
-                                 hrefPageMap: [:],
-                                 progress: progress,
-                                 completion: completion)
+        DispatchQueue.main.async {
+            self.setupWebView()
+            self.renderChapters(book: book, chapterIndex: 0,
+                                cumulativeDocument: PDFDocument(),
+                                hrefPageMap: [:],
+                                progress: progress,
+                                completion: completion)
         }
     }
 
     public func cancel() {
         isCancelled = true
-        DispatchQueue.main.async { [weak self] in
-            self?.tearDown()
+        DispatchQueue.main.async {
+            self.tearDown()
         }
     }
 
@@ -116,17 +116,17 @@ public class PDFExportService {
         var updatedMap = hrefPageMap
         updatedMap[href] = cumulativeDocument.pageCount
 
-        let delegate = PDFRenderDelegate { [weak self] in
-            guard let self = self, !self.isCancelled else {
-                self?.tearDown()
+        let delegate = PDFRenderDelegate {
+            guard !self.isCancelled else {
+                self.tearDown()
                 completion(.failure(PDFExportError.cancelled))
                 return
             }
 
             self.injectPrintCSS(webView: webView, isFirstChapter: chapterIndex == 0) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                    guard let self = self, !self.isCancelled else {
-                        self?.tearDown()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    guard !self.isCancelled else {
+                        self.tearDown()
                         completion(.failure(PDFExportError.cancelled))
                         return
                     }
@@ -134,9 +134,7 @@ public class PDFExportService {
                     let pdfConfig = WKPDFConfiguration()
                     // Don't set rect — let WebKit capture and paginate all scrollable content
 
-                    webView.createPDF(configuration: pdfConfig) { [weak self] result in
-                        guard let self = self else { return }
-
+                    webView.createPDF(configuration: pdfConfig) { result in
                         switch result {
                         case .success(let data):
                             if let chapterPDF = PDFDocument(data: data) {
