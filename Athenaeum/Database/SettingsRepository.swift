@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import GRDB
 import Ligature
 
 public class SettingsRepository {
@@ -10,33 +10,25 @@ public class SettingsRepository {
     }
 
     public func get(_ key: String) throws -> String? {
-        let stmt = try db.prepareStatement("SELECT value FROM settings WHERE key = ?;")
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (key as NSString).utf8String, -1, nil)
-
-        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
-        return String(cString: sqlite3_column_text(stmt, 0))
+        try db.dbPool.read { db in
+            try String.fetchOne(db, sql: "SELECT value FROM settings WHERE key = ?;",
+                               arguments: [key])
+        }
     }
 
     public func set(_ key: String, value: String) throws {
-        let stmt = try db.prepareStatement("""
-            INSERT INTO settings (key, value) VALUES (?, ?)
-            ON CONFLICT(key) DO UPDATE SET value=excluded.value;
-            """)
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (key as NSString).utf8String, -1, nil)
-        sqlite3_bind_text(stmt, 2, (value as NSString).utf8String, -1, nil)
-
-        guard sqlite3_step(stmt) == SQLITE_DONE else {
-            throw LibraryDatabaseError.queryFailed("Failed to set setting")
+        try db.dbPool.write { db in
+            try db.execute(sql: """
+                INSERT INTO settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value;
+                """, arguments: [key, value])
         }
     }
 
     public func delete(_ key: String) throws {
-        let stmt = try db.prepareStatement("DELETE FROM settings WHERE key = ?;")
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (key as NSString).utf8String, -1, nil)
-        sqlite3_step(stmt)
+        try db.dbPool.write { db in
+            try db.execute(sql: "DELETE FROM settings WHERE key = ?;", arguments: [key])
+        }
     }
 
     public func loadSettings() throws -> UserSettings {

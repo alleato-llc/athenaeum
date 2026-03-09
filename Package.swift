@@ -6,7 +6,8 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.macOS(.v13)],
     dependencies: [
-        .package(path: "Forma")
+        .package(path: "Forma"),
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0")
     ],
     targets: [
         .executableTarget(
@@ -17,10 +18,12 @@ let package = Package(
         ),
         .executableTarget(
             name: "Athenaeum",
-            dependencies: ["Forma"],
+            dependencies: [
+                "Forma",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ],
             path: "Athenaeum",
-            resources: [.process("Resources")],
-            linkerSettings: [.linkedLibrary("sqlite3")]
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "AthenaeumTests",

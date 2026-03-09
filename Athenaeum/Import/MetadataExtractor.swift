@@ -66,15 +66,34 @@ public class EPUBMetadataExtractor: MetadataExtractor {
             }
         }
 
+        let rawAuthors = detailedMeta.authors.isEmpty
+            ? (book.author.isEmpty ? [] : [book.author])
+            : detailedMeta.authors
+        let splitAuthors = Self.splitAuthorNames(rawAuthors)
+
         return ExtractedMetadata(
             title: book.title,
-            authors: book.author.isEmpty ? [] : [book.author],
+            authors: splitAuthors,
             year: year,
             genre: detailedMeta.subject,
             pageCount: nil,
             identifiers: identifiers,
             language: book.language
         )
+    }
+
+    static func splitAuthorNames(_ authors: [String]) -> [String] {
+        var result: [String] = []
+        for author in authors {
+            let parts = author
+                .replacingOccurrences(of: " & ", with: ",")
+                .replacingOccurrences(of: " and ", with: ",")
+                .components(separatedBy: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            result.append(contentsOf: parts)
+        }
+        return result
     }
 
     private func findOPFPath(in directory: URL) throws -> String {
@@ -92,6 +111,7 @@ class OPFMetadataParser: NSObject, XMLParserDelegate {
     var identifier = ""
     var date: String?
     var subject: String?
+    var authors: [String] = []
     private var currentElement = ""
     private var currentText = ""
     private var inMetadata = false
@@ -124,6 +144,8 @@ class OPFMetadataParser: NSObject, XMLParserDelegate {
 
         if inMetadata && !trimmed.isEmpty {
             switch localName {
+            case "creator":
+                authors.append(trimmed)
             case "identifier":
                 if identifier.isEmpty { identifier = trimmed }
             case "date":

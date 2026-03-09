@@ -1,8 +1,8 @@
 import Foundation
-import SQLite3
+import GRDB
 
 public class LibraryDatabase {
-    private var db: OpaquePointer?
+    let dbPool: DatabasePool
     public let path: String
 
     public init(path: String) throws {
@@ -10,168 +10,113 @@ public class LibraryDatabase {
         let directory = (path as NSString).deletingLastPathComponent
         try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
 
-        guard sqlite3_open(path, &db) == SQLITE_OK else {
-            let error = String(cString: sqlite3_errmsg(db))
-            sqlite3_close(db)
-            throw LibraryDatabaseError.openFailed(error)
-        }
+        var config = Configuration()
+        config.foreignKeysEnabled = true
+        dbPool = try DatabasePool(path: path, configuration: config)
 
-        try execute("PRAGMA journal_mode=WAL;")
-        try execute("PRAGMA foreign_keys=ON;")
         try migrate()
     }
 
-    deinit {
-        sqlite3_close(db)
-    }
-
     private func migrate() throws {
-        let version = try getUserVersion()
+        var migrator = DatabaseMigrator()
 
-        if version < 1 {
-            try execute("""
-                CREATE TABLE IF NOT EXISTS books (
-                    id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    year INTEGER,
-                    genre TEXT,
-                    page_count INTEGER,
-                    format TEXT NOT NULL,
-                    identifiers TEXT,
-                    cover_path TEXT,
-                    file_path TEXT NOT NULL,
-                    group_id TEXT,
-                    date_added TEXT NOT NULL
-                );
-                """)
-            try execute("""
-                CREATE TABLE IF NOT EXISTS authors (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL UNIQUE
-                );
-                """)
-            try execute("""
-                CREATE TABLE IF NOT EXISTS book_authors (
-                    book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-                    author_id TEXT NOT NULL REFERENCES authors(id) ON DELETE CASCADE,
-                    PRIMARY KEY (book_id, author_id)
-                );
-                """)
-            try execute("""
-                CREATE TABLE IF NOT EXISTS settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                );
-                """)
-            try execute("""
-                CREATE INDEX IF NOT EXISTS idx_books_title ON books(title);
-                """)
-            try execute("""
-                CREATE INDEX IF NOT EXISTS idx_books_group_id ON books(group_id);
-                """)
-            try execute("""
-                CREATE INDEX IF NOT EXISTS idx_authors_name ON authors(name);
-                """)
-            try setUserVersion(1)
+        migrator.registerMigration("v1") { db in
+            try db.create(table: "books", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("title", .text).notNull()
+                t.column("year", .integer)
+                t.column("genre", .text)
+                t.column("page_count", .integer)
+                t.column("format", .text).notNull()
+                t.column("identifiers", .text)
+                t.column("cover_path", .text)
+                t.column("file_path", .text).notNull()
+                t.column("group_id", .text)
+                t.column("date_added", .text).notNull()
+            }
+            try db.create(table: "authors", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("name", .text).notNull().unique()
+            }
+            try db.create(table: "book_authors", ifNotExists: true) { t in
+                t.column("book_id", .text).notNull()
+                    .references("books", onDelete: .cascade)
+                t.column("author_id", .text).notNull()
+                    .references("authors", onDelete: .cascade)
+                t.primaryKey(["book_id", "author_id"])
+            }
+            try db.create(table: "settings", ifNotExists: true) { t in
+                t.primaryKey("key", .text)
+                t.column("value", .text).notNull()
+            }
+            try db.create(index: "idx_books_title", on: "books", columns: ["title"],
+                         ifNotExists: true)
+            try db.create(index: "idx_books_group_id", on: "books", columns: ["group_id"],
+                         ifNotExists: true)
+            try db.create(index: "idx_authors_name", on: "authors", columns: ["name"],
+                         ifNotExists: true)
         }
 
-        if version < 2 {
-            try execute("ALTER TABLE books ADD COLUMN reading_position TEXT;")
-            try setUserVersion(2)
+        migrator.registerMigration("v2") { db in
+            try db.alter(table: "books") { t in
+                t.add(column: "reading_position", .text)
+            }
         }
 
-        if version < 3 {
-            try execute("""
-                CREATE TABLE IF NOT EXISTS highlights (
-                    id TEXT PRIMARY KEY,
-                    book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-                    chapter_index INTEGER NOT NULL,
-                    highlight_data TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
-                """)
-            try execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_highlights_book_chapter
-                ON highlights(book_id, chapter_index);
-                """)
-            try setUserVersion(3)
+        migrator.registerMigration("v3") { db in
+            try db.create(table: "highlights", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("book_id", .text).notNull()
+                    .references("books", onDelete: .cascade)
+                t.column("chapter_index", .integer).notNull()
+                t.column("highlight_data", .text).notNull()
+                t.column("updated_at", .text).notNull()
+            }
+            try db.create(index: "idx_highlights_book_chapter",
+                         on: "highlights", columns: ["book_id", "chapter_index"],
+                         unique: true, ifNotExists: true)
         }
 
-        if version < 4 {
-            // Create chapters table
-            try execute("""
-                CREATE TABLE IF NOT EXISTS chapters (
-                    id TEXT PRIMARY KEY,
-                    book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-                    chapter_index INTEGER NOT NULL,
-                    highlight_data TEXT,
-                    UNIQUE(book_id, chapter_index)
-                );
-                """)
-            // Migrate existing highlights data into chapters
-            try execute("""
+        migrator.registerMigration("v4") { db in
+            try db.create(table: "chapters", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("book_id", .text).notNull()
+                    .references("books", onDelete: .cascade)
+                t.column("chapter_index", .integer).notNull()
+                t.column("highlight_data", .text)
+                t.uniqueKey(["book_id", "chapter_index"])
+            }
+            try db.execute(sql: """
                 INSERT OR IGNORE INTO chapters (id, book_id, chapter_index, highlight_data)
                 SELECT id, book_id, chapter_index, highlight_data FROM highlights;
                 """)
-            // Create bookmarks table
-            try execute("""
-                CREATE TABLE IF NOT EXISTS bookmarks (
-                    id TEXT PRIMARY KEY,
-                    chapter_id TEXT NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
-                    scroll_position REAL NOT NULL,
-                    label TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                """)
-            try execute("""
-                CREATE INDEX IF NOT EXISTS idx_bookmarks_chapter ON bookmarks(chapter_id);
-                """)
-            // Drop old highlights table
-            try execute("DROP TABLE IF EXISTS highlights;")
-            try setUserVersion(4)
+            try db.create(table: "bookmarks", ifNotExists: true) { t in
+                t.primaryKey("id", .text)
+                t.column("chapter_id", .text).notNull()
+                    .references("chapters", onDelete: .cascade)
+                t.column("scroll_position", .double).notNull()
+                t.column("label", .text).notNull()
+                t.column("created_at", .text).notNull()
+            }
+            try db.create(index: "idx_bookmarks_chapter", on: "bookmarks",
+                         columns: ["chapter_id"], ifNotExists: true)
+            try db.drop(table: "highlights")
         }
 
-        if version < 5 {
-            try execute("ALTER TABLE chapters ADD COLUMN notes TEXT;")
-            try execute("ALTER TABLE chapters ADD COLUMN inline_notes TEXT;")
-            try setUserVersion(5)
+        migrator.registerMigration("v5") { db in
+            try db.alter(table: "chapters") { t in
+                t.add(column: "notes", .text)
+                t.add(column: "inline_notes", .text)
+            }
         }
-    }
 
-    private func getUserVersion() throws -> Int {
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "PRAGMA user_version;", -1, &stmt, nil) == SQLITE_OK else {
-            throw LibraryDatabaseError.queryFailed("Failed to get user_version")
+        migrator.registerMigration("v6") { db in
+            try db.alter(table: "book_authors") { t in
+                t.add(column: "is_primary", .integer).notNull().defaults(to: 0)
+            }
         }
-        defer { sqlite3_finalize(stmt) }
-        guard sqlite3_step(stmt) == SQLITE_ROW else {
-            throw LibraryDatabaseError.queryFailed("No result for user_version")
-        }
-        return Int(sqlite3_column_int(stmt, 0))
-    }
 
-    private func setUserVersion(_ version: Int) throws {
-        try execute("PRAGMA user_version = \(version);")
-    }
-
-    @discardableResult
-    func execute(_ sql: String) throws -> Int {
-        var errorMsg: UnsafeMutablePointer<CChar>?
-        guard sqlite3_exec(db, sql, nil, nil, &errorMsg) == SQLITE_OK else {
-            let error = errorMsg.map { String(cString: $0) } ?? "Unknown error"
-            sqlite3_free(errorMsg)
-            throw LibraryDatabaseError.queryFailed(error)
-        }
-        return Int(sqlite3_changes(db))
-    }
-
-    func prepareStatement(_ sql: String) throws -> OpaquePointer {
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let statement = stmt else {
-            let error = String(cString: sqlite3_errmsg(db))
-            throw LibraryDatabaseError.queryFailed(error)
-        }
-        return statement
+        try migrator.migrate(dbPool)
     }
 }
 

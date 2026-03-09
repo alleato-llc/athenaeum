@@ -115,7 +115,8 @@ class OPFParser: NSObject, XMLParserDelegate {
             case "title":
                 metadata.title = trimmed
             case "creator":
-                metadata.author = trimmed
+                if metadata.author.isEmpty { metadata.author = trimmed }
+                metadata.authors.append(trimmed)
             case "language":
                 metadata.language = trimmed
             case "identifier":

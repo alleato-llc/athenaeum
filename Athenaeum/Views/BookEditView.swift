@@ -115,10 +115,7 @@ public struct BookEditView: View {
         }
         updatedBook.identifiers = identifiers
 
-        let authorList = authorNames
-            .components(separatedBy: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+        let authorList = EPUBMetadataExtractor.splitAuthorNames([authorNames])
             .map { Author(name: $0) }
 
         let updatedEntry = BookEntry(id: entry.id, book: updatedBook, authors: authorList)

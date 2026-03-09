@@ -14,6 +14,7 @@ public struct EPUBWebView: NSViewRepresentable {
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         config.userContentController.add(context.coordinator, name: "noteHandler")
         config.userContentController.add(context.coordinator, name: "highlightHandler")
+        config.userContentController.add(context.coordinator, name: "scrollHandler")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
@@ -41,6 +42,8 @@ public struct EPUBWebView: NSViewRepresentable {
                 viewModel.handleNoteMessage(message.body)
             } else if message.name == "highlightHandler" {
                 viewModel.handleHighlightMessage(message.body)
+            } else if message.name == "scrollHandler" {
+                viewModel.handleScrollBoundary(message.body)
             }
         }
 

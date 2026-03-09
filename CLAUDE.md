@@ -1,6 +1,6 @@
 # Athenaeum
 
-A macOS EPUB reader and library manager built with Swift and SwiftUI. Zero external dependencies.
+A macOS EPUB reader and library manager built with Swift and SwiftUI. GRDB is the only external dependency.
 
 ## Project Structure
 
@@ -73,7 +73,7 @@ Forma/Sources/Forma/
 
 ### Athenaeum Layout
 
-Library app — database, import pipeline, library UI. Links `libsqlite3`.
+Library app — database, import pipeline, library UI. Uses GRDB for SQLite access.
 
 ```
 Athenaeum/
@@ -146,10 +146,10 @@ cd Ligature && swift test  # Run LigatureTests
 - Global page count computed via background `WKWebView` measurement of all chapters.
 - Window title bar shows reading progress percentage (e.g., "Octavo | 42% Complete").
 - All XML parsing uses Foundation `XMLParser` (SAX-style).
-- SQLite via C API (`libsqlite3`), linked in Athenaeum's Package.swift target. No ORM.
+- SQLite via [GRDB](https://github.com/groue/GRDB.swift) — the only external dependency, used for all database access.
 - Library data stored at `~/Library/Application Support/Athenaeum/` (library.db, books/, covers/).
 - No business logic in views — views delegate to view models and services.
-- Zero external dependencies.
+- GRDB is the only external dependency.
 
 ## Architectural Rules
 
@@ -159,7 +159,7 @@ These rules must be followed in all code changes:
 
 2. **Single responsibility.** Each class/struct handles one concern and composes with others for cross-cutting behavior. For example, `ThemeManager` owns theme resolution and CSS injection; `ReaderViewModel` composes with it rather than owning theme logic directly.
 
-3. **No external dependencies.** All functionality must use Foundation, AppKit, SwiftUI, WebKit, and the system SQLite C API only.
+3. **Minimal external dependencies.** Use Foundation, AppKit, SwiftUI, WebKit, and GRDB for database access. GRDB is the standard for all SQLite work — always use GRDB unless there is a major reason not to. Avoid adding other external dependencies without justification.
 
 4. **Format-agnostic models.** Library models (e.g., `LibraryBook`, `BookFormat`) support multiple formats. Reader-specific logic is separate.
 

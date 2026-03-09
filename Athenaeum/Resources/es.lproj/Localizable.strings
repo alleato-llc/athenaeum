@@ -3,7 +3,7 @@
 
 /* Library toolbar */
 "library.settings" = "Configuración";
-"library.search" = "Buscar por título o autor";
+"library.search" = "Buscar por título o autor(es)";
 
 /* Library empty state */
 "library.empty.title" = "Tu Biblioteca";
@@ -18,7 +18,7 @@
 
 /* Library table columns */
 "library.column.title" = "Título";
-"library.column.author" = "Autor";
+"library.column.author" = "Autor(es)";
 "library.column.year" = "Año";
 "library.column.format" = "Formato";
 "library.column.genre" = "Género";
@@ -113,4 +113,4 @@
 "import.directory.done" = "Listo";
 
 /* Import errors */
-"import.error.duplicate" = "Un libro titulado \"%@\" del mismo autor ya existe en tu biblioteca.";
+"import.error.duplicate" = "Un libro titulado \"%@\" del mismo autor(es) ya existe en tu biblioteca.";

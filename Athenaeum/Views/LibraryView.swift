@@ -12,6 +12,7 @@ public struct LibraryView: View {
     @State private var showSettings = false
     @State private var showZoomOverlay = false
     @State private var eventMonitor: Any?
+    @State private var magnifyMonitor: Any?
 
     public init() {}
 
@@ -161,12 +162,21 @@ public struct LibraryView: View {
             }
             return event
         }
+        magnifyMonitor = NSEvent.addLocalMonitorForEvents(matching: .magnify) { event in
+            guard event.window === viewModel.window else { return event }
+            adjustCoverScale(event.magnification)
+            return event
+        }
     }
 
     private func removeKeyboardHandling() {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
+        }
+        if let monitor = magnifyMonitor {
+            NSEvent.removeMonitor(monitor)
+            magnifyMonitor = nil
         }
     }
 

@@ -3,6 +3,7 @@ import Foundation
 public struct EPUBMetadata {
     public var title: String = ""
     public var author: String = ""
+    public var authors: [String] = []
     public var language: String = "en"
     public var identifier: String = ""
     public var publisher: String = ""

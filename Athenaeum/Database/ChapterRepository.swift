@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import GRDB
 
 public class ChapterRepository {
     private let db: LibraryDatabase
@@ -12,15 +12,12 @@ public class ChapterRepository {
     @discardableResult
     public func ensureChapter(bookId: String, chapterIndex: Int) throws -> String {
         let chapterId = "\(bookId)-\(chapterIndex)"
-        let stmt = try db.prepareStatement("""
-            INSERT OR IGNORE INTO chapters (id, book_id, chapter_index)
-            VALUES (?, ?, ?);
-            """)
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (chapterId as NSString).utf8String, -1, nil)
-        sqlite3_bind_text(stmt, 2, (bookId as NSString).utf8String, -1, nil)
-        sqlite3_bind_int(stmt, 3, Int32(chapterIndex))
-        sqlite3_step(stmt)
+        try db.dbPool.write { db in
+            try db.execute(sql: """
+                INSERT OR IGNORE INTO chapters (id, book_id, chapter_index)
+                VALUES (?, ?, ?);
+                """, arguments: [chapterId, bookId, chapterIndex])
+        }
         return chapterId
     }
 

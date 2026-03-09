@@ -3,7 +3,7 @@
 
 /* Library toolbar */
 "library.settings" = "Settings";
-"library.search" = "Search by title or author";
+"library.search" = "Search by title or author(s)";
 
 /* Library empty state */
 "library.empty.title" = "Your Library";
@@ -18,7 +18,7 @@
 
 /* Library table columns */
 "library.column.title" = "Title";
-"library.column.author" = "Author";
+"library.column.author" = "Author(s)";
 "library.column.year" = "Year";
 "library.column.format" = "Format";
 "library.column.genre" = "Genre";
@@ -113,4 +113,4 @@
 "import.directory.done" = "Done";
 
 /* Import errors */
-"import.error.duplicate" = "A book titled \"%@\" by the same author already exists in your library.";
+"import.error.duplicate" = "A book titled \"%@\" by the same author(s) already exists in your library.";

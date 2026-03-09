@@ -553,7 +553,7 @@ public class ReaderViewModel: ObservableObject {
 
         let noteMode = isNoteModeActive ? "on" : "off"
 
-        let js = Self.highlightEngineJS + Self.noteEngineJS + """
+        let js = Self.highlightEngineJS + Self.noteEngineJS + Self.scrollEngineJS + """
         athHighlightInit(\(highlightsJSON), '\(mode)', '\(highlightColor.cssColor)');
         athNoteInit(\(inlineNotesJSON), '\(noteMode)');
         """
@@ -686,6 +686,22 @@ public class ReaderViewModel: ObservableObject {
             previousChapter()
         } else {
             previousPage()
+        }
+    }
+
+    public func handleScrollBoundary(_ body: Any) {
+        guard let dict = body as? [String: Any],
+              let direction = dict["direction"] as? String else { return }
+        if direction == "next" {
+            nextChapter()
+        } else if direction == "previous" {
+            saveScrollPosition()
+            collectAndCacheHighlights()
+            guard currentChapterIndex > 0 else { return }
+            currentChapterIndex -= 1
+            goToChapter = currentChapterIndex + 1
+            scrollToBottomOnLoad = true
+            loadCurrentChapter()
         }
     }
 
@@ -1535,6 +1551,43 @@ extension ReaderViewModel {
                 });
             }
         };
+    })();
+    """
+
+    static let scrollEngineJS: String = """
+    (function() {
+        if (window._athScrollInited) return;
+        window._athScrollInited = true;
+
+        var _overscrollDelta = 0;
+        var _overscrollThreshold = 150;
+        var _overscrollResetTimer = null;
+
+        document.addEventListener('wheel', function(e) {
+            var viewportHeight = window.innerHeight;
+            var maxScroll = document.documentElement.scrollHeight - viewportHeight;
+            var atBottom = (window.scrollY >= maxScroll - 2);
+            var atTop = (window.scrollY <= 2);
+
+            if (atBottom && e.deltaY > 0) {
+                _overscrollDelta += e.deltaY;
+            } else if (atTop && e.deltaY < 0) {
+                _overscrollDelta += Math.abs(e.deltaY);
+            } else {
+                _overscrollDelta = 0;
+            }
+
+            if (_overscrollDelta >= _overscrollThreshold) {
+                _overscrollDelta = 0;
+                var direction = (atBottom && e.deltaY > 0) ? 'next' : 'previous';
+                if (window.webkit && window.webkit.messageHandlers.scrollHandler) {
+                    window.webkit.messageHandlers.scrollHandler.postMessage({direction: direction});
+                }
+            }
+
+            clearTimeout(_overscrollResetTimer);
+            _overscrollResetTimer = setTimeout(function() { _overscrollDelta = 0; }, 300);
+        }, { passive: true });
     })();
     """
 }

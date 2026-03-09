@@ -1,5 +1,5 @@
 import Foundation
-import SQLite3
+import GRDB
 import Ligature
 
 public class HighlightRepository {
@@ -22,55 +22,40 @@ public class HighlightRepository {
             jsonString = String(data: jsonData, encoding: .utf8)
         }
 
-        let stmt = try db.prepareStatement("""
-            UPDATE chapters SET highlight_data = ? WHERE id = ?;
-            """)
-        defer { sqlite3_finalize(stmt) }
-        if let json = jsonString {
-            sqlite3_bind_text(stmt, 1, (json as NSString).utf8String, -1, nil)
-        } else {
-            sqlite3_bind_null(stmt, 1)
-        }
-        sqlite3_bind_text(stmt, 2, (chapterId as NSString).utf8String, -1, nil)
-
-        guard sqlite3_step(stmt) == SQLITE_DONE else {
-            throw LibraryDatabaseError.queryFailed("Failed to save highlights")
+        try db.dbPool.write { db in
+            try db.execute(sql: "UPDATE chapters SET highlight_data = ? WHERE id = ?;",
+                          arguments: [jsonString, chapterId])
         }
     }
 
     public func loadHighlights(bookId: String, chapterIndex: Int) throws -> [Highlight] {
-        let stmt = try db.prepareStatement("""
-            SELECT highlight_data FROM chapters
-            WHERE book_id = ? AND chapter_index = ?;
-            """)
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (bookId as NSString).utf8String, -1, nil)
-        sqlite3_bind_int(stmt, 2, Int32(chapterIndex))
-
-        guard sqlite3_step(stmt) == SQLITE_ROW else { return [] }
-        guard sqlite3_column_type(stmt, 0) != SQLITE_NULL else { return [] }
-        let jsonStr = String(cString: sqlite3_column_text(stmt, 0))
-        guard let data = jsonStr.data(using: .utf8) else { return [] }
-        return (try? JSONDecoder().decode([Highlight].self, from: data)) ?? []
+        try db.dbPool.read { db in
+            guard let jsonStr = try String?.fetchOne(db, sql: """
+                SELECT highlight_data FROM chapters
+                WHERE book_id = ? AND chapter_index = ?;
+                """, arguments: [bookId, chapterIndex]) else { return [] }
+            guard let json = jsonStr,
+                  let data = json.data(using: .utf8) else { return [] }
+            return (try? JSONDecoder().decode([Highlight].self, from: data)) ?? []
+        }
     }
 
     public func loadAllHighlights(bookId: String) throws -> [Int: [Highlight]] {
-        let stmt = try db.prepareStatement("""
-            SELECT chapter_index, highlight_data FROM chapters
-            WHERE book_id = ? AND highlight_data IS NOT NULL;
-            """)
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, (bookId as NSString).utf8String, -1, nil)
-
-        var result: [Int: [Highlight]] = [:]
-        while sqlite3_step(stmt) == SQLITE_ROW {
-            let chapterIndex = Int(sqlite3_column_int(stmt, 0))
-            let jsonStr = String(cString: sqlite3_column_text(stmt, 1))
-            if let data = jsonStr.data(using: .utf8),
-               let highlights = try? JSONDecoder().decode([Highlight].self, from: data) {
-                result[chapterIndex] = highlights
+        try db.dbPool.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT chapter_index, highlight_data FROM chapters
+                WHERE book_id = ? AND highlight_data IS NOT NULL;
+                """, arguments: [bookId])
+            var result: [Int: [Highlight]] = [:]
+            for row in rows {
+                let chapterIndex: Int = row["chapter_index"]
+                let jsonStr: String = row["highlight_data"]
+                if let data = jsonStr.data(using: .utf8),
+                   let highlights = try? JSONDecoder().decode([Highlight].self, from: data) {
+                    result[chapterIndex] = highlights
+                }
             }
+            return result
         }
-        return result
     }
 }
