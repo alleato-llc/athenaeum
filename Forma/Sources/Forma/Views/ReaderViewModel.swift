@@ -33,8 +33,8 @@ public class ReaderViewModel: ObservableObject {
     @Published public var pendingNoteText: String = ""
     @Published public var editingInlineNote: InlineNote?
 
-    public let undoManager = UndoManager()
-    private var isRestoring = false
+    public let annotationUndo = ReaderUndoManager()
+    public var undoManager: UndoManager { annotationUndo.undoManager }
     public weak var webView: WKWebView?
 
     private var scrollPositions: [Int: Double] = [:]
@@ -52,9 +52,6 @@ public class ReaderViewModel: ObservableObject {
 
     private var measureCount = 0
     private var themeCancellable: AnyCancellable?
-    private var chapterHighlightsCache: [Int: [Highlight]] = [:]
-    private var chapterNotesCache: [Int: String] = [:]
-    private var inlineNotesCache: [Int: [InlineNote]] = [:]
 
     public var libraryBookId: String?
     private var initialChapterIndex: Int?
@@ -86,10 +83,10 @@ public class ReaderViewModel: ObservableObject {
         self.libraryBookId = libraryBookId
         self.initialChapterIndex = lastChapterIndex
         self.initialScrollPosition = lastScrollPosition
-        self.chapterHighlightsCache = highlights
+        self.annotationUndo.highlightsCache = highlights
         self.bookmarks = bookmarks
-        self.chapterNotesCache = chapterNotes
-        self.inlineNotesCache = inlineNotes
+        self.annotationUndo.chapterNotesCache = chapterNotes
+        self.annotationUndo.inlineNotesCache = inlineNotes
         self.fontFamily = fontFamily
         self.fontPairingId = fontPairingId
         self.themeManager = ThemeManager(themeMode: themeMode, lightThemeId: lightThemeId,
@@ -100,6 +97,8 @@ public class ReaderViewModel: ObservableObject {
             self.goToChapter = chapter + 1
             self.chapterNotes = chapterNotes[chapter] ?? ""
         }
+
+        annotationUndo.delegate = self
 
         themeCancellable = themeManager.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async {
@@ -135,7 +134,7 @@ public class ReaderViewModel: ObservableObject {
         collectHighlightsFromJS { [weak self] highlights in
             guard let self = self else { return }
             let chapter = self.currentChapterIndex
-            self.chapterHighlightsCache[chapter] = highlights
+            self.annotationUndo.highlightsCache[chapter] = highlights
             NotificationCenter.default.post(
                 name: .saveHighlights,
                 object: nil,
@@ -151,42 +150,10 @@ public class ReaderViewModel: ObservableObject {
     public func saveChapterNotesToLibrary() {
         guard let bookId = libraryBookId else { return }
         let chapter = currentChapterIndex
-        let old = chapterNotesCache[chapter]
+        let old = annotationUndo.chapterNotesCache[chapter]
         let notes = chapterNotes.isEmpty ? nil : chapterNotes
-        guard notes != old else { return }
-        chapterNotesCache[chapter] = notes
-        NotificationCenter.default.post(
-            name: .saveChapterNotes,
-            object: nil,
-            userInfo: [
-                "bookId": bookId,
-                "chapterIndex": chapter,
-                "notes": notes as Any
-            ]
-        )
-        undoManager.registerUndo(withTarget: self) { vm in
-            vm.restoreChapterNotes(chapter: chapter, notes: old, bookId: bookId)
-        }
-    }
-
-    private func restoreChapterNotes(chapter: Int, notes: String?, bookId: String) {
-        let current = chapterNotesCache[chapter]
-        chapterNotesCache[chapter] = notes
-        if chapter == currentChapterIndex {
-            chapterNotes = notes ?? ""
-        }
-        NotificationCenter.default.post(
-            name: .saveChapterNotes,
-            object: nil,
-            userInfo: [
-                "bookId": bookId,
-                "chapterIndex": chapter,
-                "notes": notes as Any
-            ]
-        )
-        undoManager.registerUndo(withTarget: self) { vm in
-            vm.restoreChapterNotes(chapter: chapter, notes: current, bookId: bookId)
-        }
+        annotationUndo.recordChapterNoteChange(chapter: chapter, bookId: bookId,
+                                                old: old, new: notes)
     }
 
     public func saveInlineNotesToLibrary() {
@@ -194,7 +161,7 @@ public class ReaderViewModel: ObservableObject {
         collectInlineNotesFromJS { [weak self] notes in
             guard let self = self else { return }
             let chapter = self.currentChapterIndex
-            self.inlineNotesCache[chapter] = notes
+            self.annotationUndo.inlineNotesCache[chapter] = notes
             NotificationCenter.default.post(
                 name: .saveInlineNotes,
                 object: nil,
@@ -243,21 +210,8 @@ public class ReaderViewModel: ObservableObject {
     public func eraseAllHighlightsOnPage() {
         guard let bookId = libraryBookId else { return }
         let chapter = currentChapterIndex
-        let old = chapterHighlightsCache[chapter] ?? []
-        isRestoring = true
-        webView?.evaluateJavaScript("athEraseAllHighlights();") { [weak self] _, _ in
-            self?.isRestoring = false
-        }
-        chapterHighlightsCache[chapter] = []
-        NotificationCenter.default.post(
-            name: .saveHighlights, object: nil,
-            userInfo: ["bookId": bookId, "chapterIndex": chapter, "highlights": [] as [Highlight]]
-        )
-        if !old.isEmpty {
-            undoManager.registerUndo(withTarget: self) { vm in
-                vm.restoreHighlights(chapter: chapter, highlights: old, bookId: bookId)
-            }
-        }
+        webView?.evaluateJavaScript("athEraseAllHighlights();")
+        annotationUndo.eraseAllHighlights(chapter: chapter, bookId: bookId)
     }
 
     public func toggleNoteMode() {
@@ -279,12 +233,14 @@ public class ReaderViewModel: ObservableObject {
             cancelPendingNote()
             return
         }
+        let chapter = currentChapterIndex
+        let old = annotationUndo.inlineNotesCache[chapter] ?? []
         let js = "athConfirmNote('\(noteId)', \(jsEscape(pendingNoteText)));"
         webView?.evaluateJavaScript(js)
         pendingNoteId = nil
         pendingNoteText = ""
         showingNoteEditor = false
-        saveInlineNotesWithUndo()
+        saveInlineNotesWithUndo(chapter: chapter, old: old)
     }
 
     public func cancelPendingNote() {
@@ -297,16 +253,20 @@ public class ReaderViewModel: ObservableObject {
     }
 
     public func deleteInlineNote(_ note: InlineNote) {
+        let chapter = currentChapterIndex
+        let old = annotationUndo.inlineNotesCache[chapter] ?? []
         webView?.evaluateJavaScript("athDeleteNote('\(note.id)');")
         editingInlineNote = nil
-        saveInlineNotesWithUndo()
+        saveInlineNotesWithUndo(chapter: chapter, old: old)
     }
 
     public func updateInlineNote(_ note: InlineNote, newText: String) {
+        let chapter = currentChapterIndex
+        let old = annotationUndo.inlineNotesCache[chapter] ?? []
         let js = "athUpdateNoteText('\(note.id)', \(jsEscape(newText)));"
         webView?.evaluateJavaScript(js)
         editingInlineNote = nil
-        saveInlineNotesWithUndo()
+        saveInlineNotesWithUndo(chapter: chapter, old: old)
     }
 
     public func handleNoteMessage(_ body: Any) {
@@ -345,92 +305,40 @@ public class ReaderViewModel: ObservableObject {
     // MARK: - Undo/Redo
 
     public func handleHighlightMessage(_ body: Any) {
-        guard !isRestoring,
+        guard !annotationUndo.isRestoring,
               let dict = body as? [String: Any],
               let action = dict["action"] as? String,
               action == "changed" else { return }
-        saveHighlightsWithUndo()
-    }
-
-    private func saveHighlightsWithUndo() {
         guard let bookId = libraryBookId else { return }
-        let chapter = currentChapterIndex
-        collectHighlightsFromJS { [weak self] highlights in
-            guard let self = self else { return }
-            let old = self.chapterHighlightsCache[chapter] ?? []
-            guard highlights != old else { return }
-            self.chapterHighlightsCache[chapter] = highlights
-            NotificationCenter.default.post(
-                name: .saveHighlights, object: nil,
-                userInfo: ["bookId": bookId, "chapterIndex": chapter, "highlights": highlights]
-            )
-            self.undoManager.registerUndo(withTarget: self) { vm in
-                vm.restoreHighlights(chapter: chapter, highlights: old, bookId: bookId)
+        // Parse highlights directly from the message — no async round-trip
+        let highlights: [Highlight]
+        if let rawList = dict["highlights"] as? [[String: Any]] {
+            highlights = rawList.compactMap { entry -> Highlight? in
+                guard let id = entry["id"] as? String,
+                      let text = entry["text"] as? String,
+                      let startPath = entry["startPath"] as? String,
+                      let startOffset = entry["startOffset"] as? Int,
+                      let endPath = entry["endPath"] as? String,
+                      let endOffset = entry["endOffset"] as? Int,
+                      let color = entry["color"] as? String else { return nil }
+                return Highlight(id: id, text: text, startPath: startPath,
+                                 startOffset: startOffset, endPath: endPath,
+                                 endOffset: endOffset, color: color)
             }
+        } else {
+            highlights = []
         }
+        let chapter = currentChapterIndex
+        let old = annotationUndo.highlightsCache[chapter] ?? []
+        annotationUndo.recordHighlightChange(
+            chapter: chapter, bookId: bookId, old: old, new: highlights)
     }
 
-    private func saveInlineNotesWithUndo() {
+    private func saveInlineNotesWithUndo(chapter: Int, old: [InlineNote]) {
         guard let bookId = libraryBookId else { return }
-        let chapter = currentChapterIndex
         collectInlineNotesFromJS { [weak self] notes in
-            guard let self = self else { return }
-            let old = self.inlineNotesCache[chapter] ?? []
-            guard notes != old else { return }
-            self.inlineNotesCache[chapter] = notes
-            NotificationCenter.default.post(
-                name: .saveInlineNotes, object: nil,
-                userInfo: ["bookId": bookId, "chapterIndex": chapter, "inlineNotes": notes]
-            )
-            self.undoManager.registerUndo(withTarget: self) { vm in
-                vm.restoreInlineNotes(chapter: chapter, notes: old, bookId: bookId)
-            }
-        }
-    }
-
-    private func restoreHighlights(chapter: Int, highlights: [Highlight], bookId: String) {
-        let current = chapterHighlightsCache[chapter] ?? []
-        chapterHighlightsCache[chapter] = highlights
-        isRestoring = true
-        if chapter == currentChapterIndex {
-            let json = encodeHighlightsJSON(highlights)
-            let mode = isHighlightModeActive ? "highlight" : (isEraserModeActive ? "eraser" : "off")
-            webView?.evaluateJavaScript(
-                "athEraseAllHighlights(); athHighlightInit(\(json), '\(mode)', '\(highlightColor.cssColor)');"
-            ) { [weak self] _, _ in
-                self?.isRestoring = false
-            }
-        } else {
-            isRestoring = false
-        }
-        NotificationCenter.default.post(
-            name: .saveHighlights, object: nil,
-            userInfo: ["bookId": bookId, "chapterIndex": chapter, "highlights": highlights]
-        )
-        undoManager.registerUndo(withTarget: self) { vm in
-            vm.restoreHighlights(chapter: chapter, highlights: current, bookId: bookId)
-        }
-    }
-
-    private func restoreInlineNotes(chapter: Int, notes: [InlineNote], bookId: String) {
-        let current = inlineNotesCache[chapter] ?? []
-        inlineNotesCache[chapter] = notes
-        isRestoring = true
-        if chapter == currentChapterIndex {
-            let json = encodeInlineNotesJSON(notes)
-            let mode = isNoteModeActive ? "on" : "off"
-            webView?.evaluateJavaScript("athEraseAllNotes(); athNoteInit(\(json), '\(mode)');") { [weak self] _, _ in
-                self?.isRestoring = false
-            }
-        } else {
-            isRestoring = false
-        }
-        NotificationCenter.default.post(
-            name: .saveInlineNotes, object: nil,
-            userInfo: ["bookId": bookId, "chapterIndex": chapter, "inlineNotes": notes]
-        )
-        undoManager.registerUndo(withTarget: self) { vm in
-            vm.restoreInlineNotes(chapter: chapter, notes: current, bookId: bookId)
+            self?.annotationUndo.recordInlineNoteChange(
+                chapter: chapter, bookId: bookId, old: old, new: notes)
         }
     }
 
@@ -614,7 +522,7 @@ public class ReaderViewModel: ObservableObject {
     private func injectHighlightEngine() {
         guard let webView = webView else { return }
         let highlightsJSON: String
-        if let cached = chapterHighlightsCache[currentChapterIndex],
+        if let cached = annotationUndo.highlightsCache[currentChapterIndex],
            !cached.isEmpty,
            let data = try? JSONEncoder().encode(cached),
            let str = String(data: data, encoding: .utf8) {
@@ -624,7 +532,7 @@ public class ReaderViewModel: ObservableObject {
         }
 
         let inlineNotesJSON: String
-        if let cached = inlineNotesCache[currentChapterIndex],
+        if let cached = annotationUndo.inlineNotesCache[currentChapterIndex],
            !cached.isEmpty {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -652,7 +560,7 @@ public class ReaderViewModel: ObservableObject {
         webView.evaluateJavaScript(js)
 
         // Load current chapter notes
-        chapterNotes = chapterNotesCache[currentChapterIndex] ?? ""
+        chapterNotes = annotationUndo.chapterNotesCache[currentChapterIndex] ?? ""
     }
 
     public var currentChapterURL: URL? {
@@ -701,7 +609,7 @@ public class ReaderViewModel: ObservableObject {
         guard libraryBookId != nil else { return }
         let chapter = currentChapterIndex
         collectHighlightsFromJS { [weak self] highlights in
-            self?.chapterHighlightsCache[chapter] = highlights
+            self?.annotationUndo.highlightsCache[chapter] = highlights
             if let bookId = self?.libraryBookId {
                 NotificationCenter.default.post(
                     name: .saveHighlights,
@@ -715,7 +623,7 @@ public class ReaderViewModel: ObservableObject {
             }
         }
         collectInlineNotesFromJS { [weak self] notes in
-            self?.inlineNotesCache[chapter] = notes
+            self?.annotationUndo.inlineNotesCache[chapter] = notes
             if let bookId = self?.libraryBookId {
                 NotificationCenter.default.post(
                     name: .saveInlineNotes,
@@ -729,7 +637,7 @@ public class ReaderViewModel: ObservableObject {
             }
         }
         // Cache chapter notes
-        chapterNotesCache[chapter] = chapterNotes.isEmpty ? nil : chapterNotes
+        annotationUndo.chapterNotesCache[chapter] = chapterNotes.isEmpty ? nil : chapterNotes
         if let bookId = libraryBookId {
             NotificationCenter.default.post(
                 name: .saveChapterNotes,
@@ -1100,7 +1008,7 @@ extension ReaderViewModel {
             applyHighlight(range, _color);
             sel.removeAllRanges();
             if (window.webkit && window.webkit.messageHandlers.highlightHandler) {
-                window.webkit.messageHandlers.highlightHandler.postMessage({action: 'changed'});
+                window.webkit.messageHandlers.highlightHandler.postMessage({action: 'changed', highlights: JSON.parse(window.athCollectHighlights())});
             }
         }
 
@@ -1114,7 +1022,7 @@ extension ReaderViewModel {
                     parent.removeChild(target);
                     parent.normalize();
                     if (window.webkit && window.webkit.messageHandlers.highlightHandler) {
-                        window.webkit.messageHandlers.highlightHandler.postMessage({action: 'changed'});
+                        window.webkit.messageHandlers.highlightHandler.postMessage({action: 'changed', highlights: JSON.parse(window.athCollectHighlights())});
                     }
                     return;
                 }
@@ -1159,6 +1067,43 @@ extension ReaderViewModel {
             });
         };
 
+        // Remove specific highlights by ID, preserving others in the DOM
+        window.athRemoveHighlightsById = function(ids) {
+            var idSet = {};
+            for (var i = 0; i < ids.length; i++) idSet[ids[i]] = true;
+            var marks = document.querySelectorAll('mark[data-ath-highlight]');
+            marks.forEach(function(mark) {
+                if (idSet[mark.getAttribute('data-ath-highlight')]) {
+                    var parent = mark.parentNode;
+                    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                    parent.removeChild(mark);
+                    parent.normalize();
+                }
+            });
+        };
+
+        // Compute text offset within a parent element, treating marks as transparent
+        // (counting only the raw text as if marks were unwrapped)
+        function cleanTextOffset(parent, targetNode, targetOffset) {
+            var offset = 0;
+            var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            var node;
+            while (node = walker.nextNode()) {
+                if (node === targetNode || (targetNode.contains && targetNode.contains(node))) {
+                    return offset + targetOffset;
+                }
+                offset += node.textContent.length;
+            }
+            return offset;
+        }
+
+        // Find the nearest non-mark ancestor element for stable XPaths
+        function stableAncestor(node) {
+            var el = node.nodeType === 1 ? node : node.parentNode;
+            while (el && el.nodeName === 'MARK') el = el.parentNode;
+            return el;
+        }
+
         window.athCollectHighlights = function() {
             var marks = document.querySelectorAll('mark[data-ath-highlight]');
             var seen = {};
@@ -1166,28 +1111,52 @@ extension ReaderViewModel {
             marks.forEach(function(mark) {
                 var id = mark.getAttribute('data-ath-highlight');
                 if (seen[id]) return;
-                // Collect all marks with same id
                 var allMarks = document.querySelectorAll('mark[data-ath-highlight="' + id + '"]');
                 var text = '';
                 allMarks.forEach(function(m) { text += m.textContent; });
                 var first = allMarks[0];
                 var last = allMarks[allMarks.length - 1];
-                var startNode = first.firstChild || first;
-                var endNode = last.lastChild || last;
                 var color = first.style.getPropertyValue('--ath-hl-color') || _color;
+
+                // Use stable ancestor (non-mark element) for XPaths
+                var startAncestor = stableAncestor(first);
+                var endAncestor = stableAncestor(last);
+                var firstText = first.firstChild || first;
+                var lastText = last.lastChild || last;
+                var startOff = cleanTextOffset(startAncestor, firstText, 0);
+                var endOff = cleanTextOffset(endAncestor, lastText, (lastText.textContent || '').length);
+
                 highlights.push({
                     id: id,
                     text: text,
-                    startPath: getXPath(first),
-                    startOffset: 0,
-                    endPath: getXPath(last),
-                    endOffset: (last.textContent || '').length,
+                    startPath: getXPath(startAncestor),
+                    startOffset: startOff,
+                    endPath: getXPath(endAncestor),
+                    endOffset: endOff,
                     color: color
                 });
                 seen[id] = true;
             });
             return JSON.stringify(highlights);
         };
+
+        // Given a parent element and a text offset (counting raw text),
+        // find the text node and local offset within that node.
+        function findTextNodeAtOffset(parent, offset) {
+            var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            var node;
+            var accumulated = 0;
+            while (node = walker.nextNode()) {
+                var len = node.textContent.length;
+                if (accumulated + len >= offset) {
+                    return { node: node, offset: offset - accumulated };
+                }
+                accumulated += len;
+            }
+            // Past the end — return last text node at its end
+            if (node) return { node: node, offset: node.textContent.length };
+            return null;
+        }
 
         window.athHighlightInit = function(highlights, mode, color) {
             _color = color;
@@ -1196,47 +1165,37 @@ extension ReaderViewModel {
             if (!highlights || !highlights.length) return;
             for (var i = 0; i < highlights.length; i++) {
                 var h = highlights[i];
-                var startNode = resolveXPath(h.startPath);
-                var endNode = resolveXPath(h.endPath);
-                if (!startNode || !endNode) continue;
-                // For restored highlights, wrap the resolved node's text content
-                if (startNode === endNode) {
-                    // Single node highlight
-                    if (startNode.nodeType === 1) {
-                        // It's an element, wrap its text children
-                        var walker = document.createTreeWalker(startNode, NodeFilter.SHOW_TEXT, null, false);
-                        var textNode = walker.nextNode();
-                        if (textNode) {
-                            var s = Math.min(h.startOffset, textNode.textContent.length);
-                            var e = Math.min(h.endOffset, textNode.textContent.length);
-                            if (s < e) wrapTextNode(textNode, s, e, h.id, h.color);
+                var startContainer = resolveXPath(h.startPath);
+                var endContainer = resolveXPath(h.endPath);
+                if (!startContainer || !endContainer) continue;
+
+                // Skip if this highlight already exists in DOM
+                if (document.querySelector('mark[data-ath-highlight="' + h.id + '"]')) continue;
+
+                try {
+                    var startInfo = findTextNodeAtOffset(startContainer, h.startOffset);
+                    var endInfo = findTextNodeAtOffset(endContainer, h.endOffset);
+                    if (!startInfo || !endInfo) continue;
+
+                    var range = document.createRange();
+                    range.setStart(startInfo.node, Math.min(startInfo.offset, startInfo.node.textContent.length));
+                    range.setEnd(endInfo.node, Math.min(endInfo.offset, endInfo.node.textContent.length));
+
+                    if (!range.collapsed) {
+                        // Use the stored id and color
+                        var textNodes = getTextNodesIn(range);
+                        for (var j = 0; j < textNodes.length; j++) {
+                            var tn = textNodes[j];
+                            var s = (tn === range.startContainer) ? range.startOffset : 0;
+                            var e = (tn === range.endContainer) ? range.endOffset : tn.textContent.length;
+                            if (s >= e) continue;
+                            wrapTextNode(tn, s, e, h.id, h.color);
+                            if (j < textNodes.length - 1) {
+                                textNodes = getTextNodesIn(range);
+                            }
                         }
-                    } else {
-                        var s = Math.min(h.startOffset, startNode.textContent.length);
-                        var e = Math.min(h.endOffset, startNode.textContent.length);
-                        if (s < e) wrapTextNode(startNode, s, e, h.id, h.color);
                     }
-                } else {
-                    // Multi-node: create a range and apply
-                    try {
-                        var range = document.createRange();
-                        if (startNode.nodeType === 1 && startNode.firstChild) {
-                            range.setStart(startNode.firstChild, h.startOffset);
-                        } else if (startNode.nodeType === 3) {
-                            range.setStart(startNode, Math.min(h.startOffset, startNode.textContent.length));
-                        } else {
-                            range.setStartBefore(startNode);
-                        }
-                        if (endNode.nodeType === 1 && endNode.lastChild) {
-                            range.setEnd(endNode.lastChild, Math.min(h.endOffset, (endNode.lastChild.textContent || '').length));
-                        } else if (endNode.nodeType === 3) {
-                            range.setEnd(endNode, Math.min(h.endOffset, endNode.textContent.length));
-                        } else {
-                            range.setEndAfter(endNode);
-                        }
-                        applyHighlight(range, h.color);
-                    } catch(e) {}
-                }
+                } catch(e) {}
             }
         };
     })();
@@ -1350,7 +1309,6 @@ extension ReaderViewModel {
         }
 
         function onNoteClick(e) {
-            if (_noteMode === 'on') return;
             var target = e.target;
             while (target && target !== document.body) {
                 if (target.nodeName === 'MARK' && target.hasAttribute('data-ath-note')) {
@@ -1435,6 +1393,42 @@ extension ReaderViewModel {
             });
         };
 
+        // Remove specific notes by ID, preserving others in the DOM
+        window.athRemoveNotesById = function(ids) {
+            var idSet = {};
+            for (var i = 0; i < ids.length; i++) idSet[ids[i]] = true;
+            var marks = document.querySelectorAll('mark[data-ath-note]');
+            marks.forEach(function(mark) {
+                if (idSet[mark.getAttribute('data-ath-note')]) {
+                    var parent = mark.parentNode;
+                    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                    parent.removeChild(mark);
+                    parent.normalize();
+                }
+            });
+        };
+
+        // Compute text offset within a parent element, treating marks as transparent
+        function noteCleanTextOffset(parent, targetNode, targetOffset) {
+            var offset = 0;
+            var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            var node;
+            while (node = walker.nextNode()) {
+                if (node === targetNode || (targetNode.contains && targetNode.contains(node))) {
+                    return offset + targetOffset;
+                }
+                offset += node.textContent.length;
+            }
+            return offset;
+        }
+
+        // Find the nearest non-mark ancestor element for stable XPaths
+        function noteStableAncestor(node) {
+            var el = node.nodeType === 1 ? node : node.parentNode;
+            while (el && el.nodeName === 'MARK') el = el.parentNode;
+            return el;
+        }
+
         window.athCollectNotes = function() {
             var marks = document.querySelectorAll('mark[data-ath-note]');
             var seen = {};
@@ -1450,20 +1444,45 @@ extension ReaderViewModel {
                 allMarks.forEach(function(m) { text += m.textContent; });
                 var first = allMarks[0];
                 var last = allMarks[allMarks.length - 1];
+
+                // Use stable ancestor (non-mark element) for XPaths
+                var startAncestor = noteStableAncestor(first);
+                var endAncestor = noteStableAncestor(last);
+                var firstText = first.firstChild || first;
+                var lastText = last.lastChild || last;
+                var startOff = noteCleanTextOffset(startAncestor, firstText, 0);
+                var endOff = noteCleanTextOffset(endAncestor, lastText, (lastText.textContent || '').length);
+
                 notes.push({
                     id: id,
                     text: text,
                     note: noteText,
-                    startPath: getXPath(first),
-                    startOffset: 0,
-                    endPath: getXPath(last),
-                    endOffset: (last.textContent || '').length,
+                    startPath: getXPath(startAncestor),
+                    startOffset: startOff,
+                    endPath: getXPath(endAncestor),
+                    endOffset: endOff,
                     createdAt: new Date().toISOString()
                 });
                 seen[id] = true;
             });
             return JSON.stringify(notes);
         };
+
+        // Given a parent element and a text offset, find the text node and local offset
+        function noteFindTextNodeAtOffset(parent, offset) {
+            var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+            var node;
+            var accumulated = 0;
+            while (node = walker.nextNode()) {
+                var len = node.textContent.length;
+                if (accumulated + len >= offset) {
+                    return { node: node, offset: offset - accumulated };
+                }
+                accumulated += len;
+            }
+            if (node) return { node: node, offset: node.textContent.length };
+            return null;
+        }
 
         window.athNoteInit = function(notes, mode) {
             _noteMode = mode;
@@ -1479,51 +1498,36 @@ extension ReaderViewModel {
             if (!notes || !notes.length) return;
             for (var i = 0; i < notes.length; i++) {
                 var n = notes[i];
-                var startNode = resolveXPath(n.startPath);
-                var endNode = resolveXPath(n.endPath);
-                if (!startNode || !endNode) continue;
-                if (startNode === endNode) {
-                    if (startNode.nodeType === 1) {
-                        var walker = document.createTreeWalker(startNode, NodeFilter.SHOW_TEXT, null, false);
-                        var textNode = walker.nextNode();
-                        if (textNode) {
-                            var s = Math.min(n.startOffset, textNode.textContent.length);
-                            var e = Math.min(n.endOffset, textNode.textContent.length);
-                            if (s < e) wrapNoteTextNode(textNode, s, e, n.id);
+                var startContainer = resolveXPath(n.startPath);
+                var endContainer = resolveXPath(n.endPath);
+                if (!startContainer || !endContainer) continue;
+
+                // Skip if this note already exists in DOM
+                if (document.querySelector('mark[data-ath-note="' + n.id + '"]')) continue;
+
+                try {
+                    var startInfo = noteFindTextNodeAtOffset(startContainer, n.startOffset);
+                    var endInfo = noteFindTextNodeAtOffset(endContainer, n.endOffset);
+                    if (!startInfo || !endInfo) continue;
+
+                    var range = document.createRange();
+                    range.setStart(startInfo.node, Math.min(startInfo.offset, startInfo.node.textContent.length));
+                    range.setEnd(endInfo.node, Math.min(endInfo.offset, endInfo.node.textContent.length));
+
+                    if (!range.collapsed) {
+                        var textNodes = getNoteTextNodesIn(range);
+                        for (var j = 0; j < textNodes.length; j++) {
+                            var tn = textNodes[j];
+                            var s = (tn === range.startContainer) ? range.startOffset : 0;
+                            var e = (tn === range.endContainer) ? range.endOffset : tn.textContent.length;
+                            if (s >= e) continue;
+                            wrapNoteTextNode(tn, s, e, n.id);
+                            if (j < textNodes.length - 1) {
+                                textNodes = getNoteTextNodesIn(range);
+                            }
                         }
-                    } else {
-                        var s = Math.min(n.startOffset, startNode.textContent.length);
-                        var e = Math.min(n.endOffset, startNode.textContent.length);
-                        if (s < e) wrapNoteTextNode(startNode, s, e, n.id);
                     }
-                } else {
-                    try {
-                        var range = document.createRange();
-                        if (startNode.nodeType === 1 && startNode.firstChild) {
-                            range.setStart(startNode.firstChild, n.startOffset);
-                        } else if (startNode.nodeType === 3) {
-                            range.setStart(startNode, Math.min(n.startOffset, startNode.textContent.length));
-                        } else {
-                            range.setStartBefore(startNode);
-                        }
-                        if (endNode.nodeType === 1 && endNode.lastChild) {
-                            range.setEnd(endNode.lastChild, Math.min(n.endOffset, (endNode.lastChild.textContent || '').length));
-                        } else if (endNode.nodeType === 3) {
-                            range.setEnd(endNode, Math.min(n.endOffset, endNode.textContent.length));
-                        } else {
-                            range.setEndAfter(endNode);
-                        }
-                        var result = applyNoteMarks(range);
-                        if (result) {
-                            var restoredMarks = document.querySelectorAll('mark[data-ath-note="' + result.id + '"]');
-                            // Replace generated id with stored id and set note text
-                            restoredMarks.forEach(function(m) {
-                                m.setAttribute('data-ath-note', n.id);
-                                m.setAttribute('data-note-text', n.note || '');
-                            });
-                        }
-                    } catch(e) {}
-                }
+                } catch(e) {}
                 // Set note text on restored marks
                 var restoredMarks = document.querySelectorAll('mark[data-ath-note="' + n.id + '"]');
                 restoredMarks.forEach(function(m) {
@@ -1553,6 +1557,108 @@ private class MeasureDelegate: NSObject, WKNavigationDelegate {
         webView.evaluateJavaScript(js) { [weak self] result, _ in
             let pages = result as? Int ?? 1
             self?.completion(pages)
+        }
+    }
+}
+
+// MARK: - ReaderUndoDelegate
+
+extension ReaderViewModel: ReaderUndoDelegate {
+    public func applyHighlights(_ highlights: [Highlight], forChapter chapter: Int) {
+        if chapter == currentChapterIndex {
+            // Diff: find which highlight IDs to remove and which to add
+            // Current DOM has the "previous" state; we want the "desired" state
+            let desiredIds = Set(highlights.map(\.id))
+
+            // Collect current IDs from JS to compute the diff
+            webView?.evaluateJavaScript(
+                "(function(){ var ids=[]; document.querySelectorAll('mark[data-ath-highlight]').forEach(function(m){ var id=m.getAttribute('data-ath-highlight'); if(ids.indexOf(id)===-1) ids.push(id); }); return JSON.stringify(ids); })()"
+            ) { [weak self] result, _ in
+                guard let self = self else { return }
+                let currentIds: Set<String>
+                if let jsonStr = result as? String,
+                   let data = jsonStr.data(using: .utf8),
+                   let ids = try? JSONDecoder().decode([String].self, from: data) {
+                    currentIds = Set(ids)
+                } else {
+                    currentIds = []
+                }
+
+                let toRemove = currentIds.subtracting(desiredIds)
+                let toAdd = highlights.filter { !currentIds.contains($0.id) }
+
+                var js = ""
+                if !toRemove.isEmpty {
+                    let removeJSON = toRemove.map { "'\($0)'" }.joined(separator: ",")
+                    js += "athRemoveHighlightsById([\(removeJSON)]);"
+                }
+                if !toAdd.isEmpty {
+                    let addJSON = self.encodeHighlightsJSON(Array(toAdd))
+                    let mode = self.isHighlightModeActive ? "highlight" : (self.isEraserModeActive ? "eraser" : "off")
+                    js += "athHighlightInit(\(addJSON), '\(mode)', '\(self.highlightColor.cssColor)');"
+                }
+
+                if js.isEmpty {
+                    DispatchQueue.main.async { self.annotationUndo.clearRestoring() }
+                } else {
+                    self.webView?.evaluateJavaScript(js) { [weak self] _, _ in
+                        DispatchQueue.main.async { self?.annotationUndo.clearRestoring() }
+                    }
+                }
+            }
+        } else {
+            annotationUndo.clearRestoring()
+        }
+    }
+
+    public func applyInlineNotes(_ notes: [InlineNote], forChapter chapter: Int) {
+        if chapter == currentChapterIndex {
+            let desiredIds = Set(notes.map(\.id))
+
+            // Collect current note IDs from JS to compute the diff
+            webView?.evaluateJavaScript(
+                "(function(){ var ids=[]; document.querySelectorAll('mark[data-ath-note]').forEach(function(m){ var id=m.getAttribute('data-ath-note'); if(ids.indexOf(id)===-1) ids.push(id); }); return JSON.stringify(ids); })()"
+            ) { [weak self] result, _ in
+                guard let self = self else { return }
+                let currentIds: Set<String>
+                if let jsonStr = result as? String,
+                   let data = jsonStr.data(using: .utf8),
+                   let ids = try? JSONDecoder().decode([String].self, from: data) {
+                    currentIds = Set(ids)
+                } else {
+                    currentIds = []
+                }
+
+                let toRemove = currentIds.subtracting(desiredIds)
+                let toAdd = notes.filter { !currentIds.contains($0.id) }
+
+                var js = ""
+                if !toRemove.isEmpty {
+                    let removeJSON = toRemove.map { "'\($0)'" }.joined(separator: ",")
+                    js += "athRemoveNotesById([\(removeJSON)]);"
+                }
+                if !toAdd.isEmpty {
+                    let addJSON = self.encodeInlineNotesJSON(Array(toAdd))
+                    let mode = self.isNoteModeActive ? "on" : "off"
+                    js += "athNoteInit(\(addJSON), '\(mode)');"
+                }
+
+                if js.isEmpty {
+                    DispatchQueue.main.async { self.annotationUndo.clearRestoring() }
+                } else {
+                    self.webView?.evaluateJavaScript(js) { [weak self] _, _ in
+                        DispatchQueue.main.async { self?.annotationUndo.clearRestoring() }
+                    }
+                }
+            }
+        } else {
+            annotationUndo.clearRestoring()
+        }
+    }
+
+    public func applyChapterNotes(_ notes: String, forChapter chapter: Int) {
+        if chapter == currentChapterIndex {
+            chapterNotes = notes
         }
     }
 }

@@ -15,6 +15,9 @@ let package = Package(
         .target(name: "Forma",
                 dependencies: ["Ligature"],
                 path: "Sources/Forma",
-                resources: [.process("Resources")])
+                resources: [.process("Resources")]),
+        .testTarget(name: "FormaTests",
+                    dependencies: ["Forma"],
+                    path: "Tests/FormaTests")
     ]
 )
