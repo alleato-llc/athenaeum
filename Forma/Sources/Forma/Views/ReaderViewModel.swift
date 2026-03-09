@@ -34,6 +34,7 @@ public class ReaderViewModel: ObservableObject {
     @Published public var editingInlineNote: InlineNote?
 
     public let undoManager = UndoManager()
+    private var isRestoring = false
     public weak var webView: WKWebView?
 
     private var scrollPositions: [Int: Double] = [:]
@@ -150,7 +151,9 @@ public class ReaderViewModel: ObservableObject {
     public func saveChapterNotesToLibrary() {
         guard let bookId = libraryBookId else { return }
         let chapter = currentChapterIndex
+        let old = chapterNotesCache[chapter]
         let notes = chapterNotes.isEmpty ? nil : chapterNotes
+        guard notes != old else { return }
         chapterNotesCache[chapter] = notes
         NotificationCenter.default.post(
             name: .saveChapterNotes,
@@ -161,6 +164,29 @@ public class ReaderViewModel: ObservableObject {
                 "notes": notes as Any
             ]
         )
+        undoManager.registerUndo(withTarget: self) { vm in
+            vm.restoreChapterNotes(chapter: chapter, notes: old, bookId: bookId)
+        }
+    }
+
+    private func restoreChapterNotes(chapter: Int, notes: String?, bookId: String) {
+        let current = chapterNotesCache[chapter]
+        chapterNotesCache[chapter] = notes
+        if chapter == currentChapterIndex {
+            chapterNotes = notes ?? ""
+        }
+        NotificationCenter.default.post(
+            name: .saveChapterNotes,
+            object: nil,
+            userInfo: [
+                "bookId": bookId,
+                "chapterIndex": chapter,
+                "notes": notes as Any
+            ]
+        )
+        undoManager.registerUndo(withTarget: self) { vm in
+            vm.restoreChapterNotes(chapter: chapter, notes: current, bookId: bookId)
+        }
     }
 
     public func saveInlineNotesToLibrary() {
@@ -218,7 +244,10 @@ public class ReaderViewModel: ObservableObject {
         guard let bookId = libraryBookId else { return }
         let chapter = currentChapterIndex
         let old = chapterHighlightsCache[chapter] ?? []
-        webView?.evaluateJavaScript("athEraseAllHighlights();")
+        isRestoring = true
+        webView?.evaluateJavaScript("athEraseAllHighlights();") { [weak self] _, _ in
+            self?.isRestoring = false
+        }
         chapterHighlightsCache[chapter] = []
         NotificationCenter.default.post(
             name: .saveHighlights, object: nil,
@@ -316,7 +345,8 @@ public class ReaderViewModel: ObservableObject {
     // MARK: - Undo/Redo
 
     public func handleHighlightMessage(_ body: Any) {
-        guard let dict = body as? [String: Any],
+        guard !isRestoring,
+              let dict = body as? [String: Any],
               let action = dict["action"] as? String,
               action == "changed" else { return }
         saveHighlightsWithUndo()
@@ -361,12 +391,17 @@ public class ReaderViewModel: ObservableObject {
     private func restoreHighlights(chapter: Int, highlights: [Highlight], bookId: String) {
         let current = chapterHighlightsCache[chapter] ?? []
         chapterHighlightsCache[chapter] = highlights
+        isRestoring = true
         if chapter == currentChapterIndex {
             let json = encodeHighlightsJSON(highlights)
             let mode = isHighlightModeActive ? "highlight" : (isEraserModeActive ? "eraser" : "off")
             webView?.evaluateJavaScript(
                 "athEraseAllHighlights(); athHighlightInit(\(json), '\(mode)', '\(highlightColor.cssColor)');"
-            )
+            ) { [weak self] _, _ in
+                self?.isRestoring = false
+            }
+        } else {
+            isRestoring = false
         }
         NotificationCenter.default.post(
             name: .saveHighlights, object: nil,
@@ -380,10 +415,15 @@ public class ReaderViewModel: ObservableObject {
     private func restoreInlineNotes(chapter: Int, notes: [InlineNote], bookId: String) {
         let current = inlineNotesCache[chapter] ?? []
         inlineNotesCache[chapter] = notes
+        isRestoring = true
         if chapter == currentChapterIndex {
             let json = encodeInlineNotesJSON(notes)
             let mode = isNoteModeActive ? "on" : "off"
-            webView?.evaluateJavaScript("athEraseAllNotes(); athNoteInit(\(json), '\(mode)');")
+            webView?.evaluateJavaScript("athEraseAllNotes(); athNoteInit(\(json), '\(mode)');") { [weak self] _, _ in
+                self?.isRestoring = false
+            }
+        } else {
+            isRestoring = false
         }
         NotificationCenter.default.post(
             name: .saveInlineNotes, object: nil,
