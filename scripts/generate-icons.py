@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 # macOS icon slots: (logical_size, scale) -> pixel_size
 ICON_SLOTS = [
@@ -36,21 +36,6 @@ def rounded_rectangle_mask(size, radius):
     draw.rounded_rectangle([(0, 0), (size[0] - 1, size[1] - 1)], radius=radius, fill=255)
     return mask
 
-
-def get_font(size):
-    """Get a serif font at the given size, falling back to default."""
-    font_paths = [
-        "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
-        "/System/Library/Fonts/Times.ttc",
-        "/Library/Fonts/Georgia.ttf",
-    ]
-    for path in font_paths:
-        if os.path.exists(path):
-            try:
-                return ImageFont.truetype(path, size)
-            except (OSError, IOError):
-                continue
-    return ImageFont.load_default()
 
 
 def draw_athenaeum_icon(size):
@@ -135,108 +120,194 @@ def draw_athenaeum_icon(size):
                 (x, bottom),
             ], fill=color)
 
-    # Letter "A" at top
-    font_size = int(size * 0.1)
-    font = get_font(font_size)
-    letter_color = (200, 170, 175)
-    bbox = draw.textbbox((0, 0), "A", font=font)
-    text_w = bbox[2] - bbox[0]
-    text_x = (size - text_w) // 2
-    text_y = int(size * 0.12)
-    draw.text((text_x, text_y), "A", fill=letter_color, font=font)
-
     return img
 
 
 def draw_octavo_icon(size):
     """Draw the Octavo open book icon at the given pixel size."""
+    import random
+    rng = random.Random(42)  # Fixed seed for reproducibility
+
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Background
-    bg_color = (140, 95, 70)
+    # Background — matching Athenaeum burgundy
+    bg_color = (85, 40, 50)
     radius = int(size * 0.18)
     draw.rounded_rectangle([(0, 0), (size - 1, size - 1)], radius=radius, fill=bg_color)
 
-    edge_color = (115, 78, 55)
+    edge_color = (65, 30, 38)
     draw.rounded_rectangle([(0, 0), (size - 1, size - 1)], radius=radius, outline=edge_color, width=max(1, size // 256))
 
-    # Open book dimensions
+    # Shadow under book
+    shadow_color = (60, 25, 32)
     cx = size // 2
+    shadow_top = int(size * 0.26)
+    shadow_bottom = int(size * 0.76)
+    shadow_offset = max(2, int(size * 0.015))
+    draw.polygon([
+        (int(size * 0.11) + shadow_offset, shadow_top - int(size * 0.02) + shadow_offset),
+        (cx, shadow_top + int(size * 0.02) + shadow_offset),
+        (size - int(size * 0.11) + shadow_offset, shadow_top - int(size * 0.02) + shadow_offset),
+        (size - int(size * 0.11) + shadow_offset, shadow_bottom - int(size * 0.02) + shadow_offset),
+        (cx, shadow_bottom + int(size * 0.02) + shadow_offset),
+        (int(size * 0.11) + shadow_offset, shadow_bottom - int(size * 0.02) + shadow_offset),
+    ], fill=shadow_color)
+
+    # Book geometry — angled pages meeting at spine
     book_top = int(size * 0.22)
     book_bottom = int(size * 0.72)
-    book_left = int(size * 0.14)
-    book_right = size - int(size * 0.14)
-    page_color = (250, 245, 235)
+    book_left = int(size * 0.12)
+    book_right = size - int(size * 0.12)
+    # Perspective angles — subtle: outer edges slightly higher than spine
+    spine_top = book_top + int(size * 0.012)
+    spine_bottom = book_bottom - int(size * 0.005)
+
+    left_top_inner = spine_top
+    left_top_outer = book_top - int(size * 0.008)
+    left_bot_inner = spine_bottom
+    left_bot_outer = book_bottom - int(size * 0.02)
+
+    right_top_inner = spine_top
+    right_top_outer = book_top - int(size * 0.008)
+    right_bot_inner = spine_bottom
+    right_bot_outer = book_bottom - int(size * 0.02)
+
     cover_color = (160, 50, 45)
-    spine_color = (100, 65, 45)
-    line_color = (190, 185, 175)
+    cover_dark = (130, 40, 35)
+    page_color = (250, 245, 235)
+    page_shadow = (235, 228, 215)
+    spine_color = (90, 55, 38)
 
-    # Left cover (visible edges)
-    cover_inset = int(size * 0.02)
+    # Left cover (visible only at outer edge, not extending to spine)
+    cover_w = int(size * 0.025)
+    cover_extent = int(size * 0.06)  # How far inward the cover peeks
     draw.polygon([
-        (book_left - cover_inset, book_top + cover_inset),
-        (cx - int(size * 0.01), book_top),
-        (cx - int(size * 0.01), book_bottom),
-        (book_left - cover_inset, book_bottom - cover_inset),
+        (book_left - cover_w, left_top_outer + int(size * 0.005)),
+        (book_left + cover_extent, left_top_outer + int(size * 0.015)),
+        (book_left + cover_extent, left_bot_outer + int(size * 0.01)),
+        (book_left - cover_w, left_bot_outer + int(size * 0.015)),
     ], fill=cover_color)
 
-    # Right cover
+    # Right cover (visible only at outer edge)
     draw.polygon([
-        (cx + int(size * 0.01), book_top),
-        (book_right + cover_inset, book_top + cover_inset),
-        (book_right + cover_inset, book_bottom - cover_inset),
-        (cx + int(size * 0.01), book_bottom),
+        (book_right - cover_extent, right_top_outer + int(size * 0.015)),
+        (book_right + cover_w, right_top_outer + int(size * 0.005)),
+        (book_right + cover_w, right_bot_outer + int(size * 0.015)),
+        (book_right - cover_extent, right_bot_outer + int(size * 0.01)),
     ], fill=cover_color)
 
-    # Left page
+    # Page edges (stacked pages visible at outer edges only)
+    edge_color_light = (240, 235, 225)
+    edge_color_mid = (225, 218, 205)
+    page_thickness = max(2, int(size * 0.012))
+    # Left side — thin strip along outer edge beneath the page
     draw.polygon([
-        (book_left, book_top + int(size * 0.01)),
-        (cx - int(size * 0.005), book_top - int(size * 0.005)),
-        (cx - int(size * 0.005), book_bottom + int(size * 0.005)),
-        (book_left, book_bottom - int(size * 0.01)),
+        (book_left - page_thickness, left_top_outer + int(size * 0.005)),
+        (book_left, left_top_outer),
+        (book_left, left_bot_outer),
+        (book_left - page_thickness, left_bot_outer + int(size * 0.005)),
+    ], fill=edge_color_mid)
+    # Right side
+    draw.polygon([
+        (book_right, right_top_outer),
+        (book_right + page_thickness, right_top_outer + int(size * 0.005)),
+        (book_right + page_thickness, right_bot_outer + int(size * 0.005)),
+        (book_right, right_bot_outer),
+    ], fill=edge_color_mid)
+
+    # Spine
+    spine_w = max(2, int(size * 0.015))
+    spine_x_l = cx - spine_w // 2
+    spine_x_r = cx + spine_w // 2
+    flat_top = min(left_top_outer, right_top_outer)  # Highest point
+
+    # Left page — top edge is flat across, slopes only at bottom
+    draw.polygon([
+        (book_left, left_top_outer),
+        (spine_x_l, flat_top),
+        (spine_x_l, left_bot_inner),
+        (book_left, left_bot_outer),
     ], fill=page_color)
 
     # Right page
     draw.polygon([
-        (cx + int(size * 0.005), book_top - int(size * 0.005)),
-        (book_right, book_top + int(size * 0.01)),
-        (book_right, book_bottom - int(size * 0.01)),
-        (cx + int(size * 0.005), book_bottom + int(size * 0.005)),
+        (spine_x_r, flat_top),
+        (book_right, right_top_outer),
+        (book_right, right_bot_outer),
+        (spine_x_r, right_bot_inner),
     ], fill=page_color)
 
-    # Spine
-    spine_w = max(2, int(size * 0.02))
-    draw.rectangle([cx - spine_w // 2, book_top - int(size * 0.005),
-                     cx + spine_w // 2, book_bottom + int(size * 0.005)], fill=spine_color)
+    # Inner shadow near spine (left)
+    shadow_w = int(size * 0.04)
+    for s in range(shadow_w):
+        alpha_frac = 1.0 - (s / shadow_w)
+        r = int(page_color[0] - (page_color[0] - page_shadow[0]) * alpha_frac)
+        g = int(page_color[1] - (page_color[1] - page_shadow[1]) * alpha_frac)
+        b = int(page_color[2] - (page_color[2] - page_shadow[2]) * alpha_frac)
+        x = spine_x_l - s
+        frac = s / shadow_w
+        y_bot = int(left_bot_inner + (left_bot_outer - left_bot_inner) * frac)
+        draw.line([x, flat_top, x, y_bot], fill=(r, g, b))
 
-    # Text lines on left page
+    # Inner shadow near spine (right)
+    for s in range(shadow_w):
+        alpha_frac = 1.0 - (s / shadow_w)
+        r = int(page_color[0] - (page_color[0] - page_shadow[0]) * alpha_frac)
+        g = int(page_color[1] - (page_color[1] - page_shadow[1]) * alpha_frac)
+        b = int(page_color[2] - (page_color[2] - page_shadow[2]) * alpha_frac)
+        x = spine_x_r + s
+        frac = s / shadow_w
+        y_bot = int(right_bot_inner + (right_bot_outer - right_bot_inner) * frac)
+        draw.line([x, flat_top, x, y_bot], fill=(r, g, b))
+
+    # Spine groove
+    draw.rectangle([spine_x_l, flat_top, spine_x_r, spine_bottom], fill=spine_color)
+    hl_w = max(1, spine_w // 3)
+    spine_hl = (120, 80, 55)
+    draw.rectangle([spine_x_l, flat_top, spine_x_l + hl_w, spine_bottom], fill=spine_hl)
+
+    # Text scribbles — varied lengths to simulate real text
     lw = max(1, size // 256)
-    line_margin_l = book_left + int(size * 0.04)
-    line_margin_r_left = cx - int(size * 0.04)
-    line_margin_l_right = cx + int(size * 0.04)
-    line_margin_r = book_right - int(size * 0.04)
-    line_spacing = int(size * 0.045)
-    num_lines = 7
+    line_color = (195, 188, 178)
+    line_dark = (175, 168, 158)
+    num_lines = 9
+    line_spacing = int(size * 0.038)
+
+    # Line length patterns (fraction of available width) — simulate paragraphs
+    left_lengths = [0.95, 0.88, 0.72, 0.95, 0.80, 0.60, 0.95, 0.90, 0.45]
+    right_lengths = [0.90, 0.95, 0.85, 0.68, 0.95, 0.92, 0.75, 0.95, 0.55]
 
     for i in range(num_lines):
-        y = book_top + int(size * 0.06) + i * line_spacing
-        if y > book_bottom - int(size * 0.04):
+        # Interpolate Y positions along the angled page
+        frac = (int(size * 0.06) + i * line_spacing) / (left_bot_outer - left_top_outer)
+        if frac > 0.9:
             break
-        # Left page lines
-        draw.line([line_margin_l, y, line_margin_r_left, y], fill=line_color, width=lw)
-        # Right page lines
-        draw.line([line_margin_l_right, y, line_margin_r, y], fill=line_color, width=lw)
 
-    # Letter "O" at bottom
-    font_size = int(size * 0.08)
-    font = get_font(font_size)
-    letter_color = (220, 210, 200)
-    bbox = draw.textbbox((0, 0), "O", font=font)
-    text_w = bbox[2] - bbox[0]
-    text_x = (size - text_w) // 2
-    text_y = int(size * 0.78)
-    draw.text((text_x, text_y), "O", fill=letter_color, font=font)
+        # Left page
+        y_left_at_outer = left_top_outer + frac * (left_bot_outer - left_top_outer)
+        y_left_at_inner = left_top_inner + frac * (left_bot_inner - left_top_inner)
+        margin_l = book_left + int(size * 0.04)
+        margin_r_left = cx - int(size * 0.05)
+        avail_w = margin_r_left - margin_l
+        length_frac = left_lengths[i] if i < len(left_lengths) else 0.8
+        # Slight y slope across the line for perspective
+        y_l = int(y_left_at_outer) + int(size * 0.02)
+        y_r = int(y_left_at_outer + (y_left_at_inner - y_left_at_outer) * length_frac) + int(size * 0.02)
+        color = line_dark if i % 3 == 0 else line_color
+        draw.line([margin_l, y_l, margin_l + int(avail_w * length_frac), y_r], fill=color, width=lw)
+
+        # Right page
+        y_right_at_inner = right_top_inner + frac * (right_bot_inner - right_top_inner)
+        y_right_at_outer = right_top_outer + frac * (right_bot_outer - right_top_outer)
+        margin_l_right = cx + int(size * 0.05)
+        margin_r = book_right - int(size * 0.04)
+        avail_w_r = margin_r - margin_l_right
+        length_frac_r = right_lengths[i] if i < len(right_lengths) else 0.8
+        y_l2 = int(y_right_at_inner) + int(size * 0.02)
+        y_r2 = int(y_right_at_inner + (y_right_at_outer - y_right_at_inner) * length_frac_r) + int(size * 0.02)
+        color = line_dark if (i + 1) % 3 == 0 else line_color
+        draw.line([margin_l_right, y_l2, margin_l_right + int(avail_w_r * length_frac_r), y_r2], fill=color, width=lw)
 
     return img
 
