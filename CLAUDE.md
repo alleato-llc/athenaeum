@@ -1,6 +1,6 @@
 # Athenaeum
 
-A macOS EPUB reader and library manager built with Swift and SwiftUI. GRDB is the only external dependency.
+A macOS EPUB reader and library manager built with Swift and SwiftUI. External dependencies: GRDB (database) and ZIPFoundation (zip/unzip).
 
 ## Project Structure
 
@@ -134,7 +134,7 @@ cd Ligature && swift test  # Run LigatureTests
 
 ## Key Technical Details
 
-- EPUB extraction uses `/usr/bin/unzip` via `Process` to a temp directory.
+- EPUB extraction uses [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) (no shell-outs).
 - Chapter content rendered in `WKWebView` with local file access enabled.
 - Styling injected via JavaScript: font family forced with `* { font-family: inherit !important }`.
 - Page zoom via `WKWebView.pageZoom` (single unified zoom, no separate font size control).
@@ -146,10 +146,10 @@ cd Ligature && swift test  # Run LigatureTests
 - Global page count computed via background `WKWebView` measurement of all chapters.
 - Window title bar shows reading progress percentage (e.g., "Octavo | 42% Complete").
 - All XML parsing uses Foundation `XMLParser` (SAX-style).
-- SQLite via [GRDB](https://github.com/groue/GRDB.swift) — the only external dependency, used for all database access.
+- SQLite via [GRDB](https://github.com/groue/GRDB.swift), used for all database access.
 - Library data stored at `~/Library/Application Support/Athenaeum/` (library.db, books/, covers/).
 - No business logic in views — views delegate to view models and services.
-- GRDB is the only external dependency.
+- No `Process` shell-outs — all file operations use native Swift or library APIs.
 
 ## Architectural Rules
 
@@ -159,7 +159,7 @@ These rules must be followed in all code changes:
 
 2. **Single responsibility.** Each class/struct handles one concern and composes with others for cross-cutting behavior. For example, `ThemeManager` owns theme resolution and CSS injection; `ReaderViewModel` composes with it rather than owning theme logic directly.
 
-3. **Minimal external dependencies.** Use Foundation, AppKit, SwiftUI, WebKit, and GRDB for database access. GRDB is the standard for all SQLite work — always use GRDB unless there is a major reason not to. Avoid adding other external dependencies without justification.
+3. **Minimal external dependencies.** Use Foundation, AppKit, SwiftUI, WebKit, GRDB for database access, and ZIPFoundation for zip operations. No `Process` shell-outs — never use `/usr/bin/unzip`, `/usr/bin/tar`, or similar. Avoid adding other external dependencies without justification.
 
 4. **Format-agnostic models.** Library models (e.g., `LibraryBook`, `BookFormat`) support multiple formats. Reader-specific logic is separate.
 

@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Ligature
+import ZIPFoundation
 
 public protocol CoverExtractor {
     func extractCover(from url: URL, to destinationPath: String) throws -> Bool
@@ -15,15 +16,7 @@ public class EPUBCoverExtractor: CoverExtractor {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-o", url.path, "-d", tempDir.path]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else { return false }
+        try FileManager.default.unzipItem(at: url, to: tempDir)
 
         let containerURL = tempDir
             .appendingPathComponent("META-INF")

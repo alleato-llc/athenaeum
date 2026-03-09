@@ -8,8 +8,13 @@ let package = Package(
     products: [
         .library(name: "Ligature", targets: ["Ligature"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.0")
+    ],
     targets: [
-        .target(name: "Ligature", path: "Sources/Ligature"),
+        .target(name: "Ligature",
+                dependencies: ["ZIPFoundation"],
+                path: "Sources/Ligature"),
         .testTarget(
             name: "LigatureTests",
             dependencies: ["Ligature"],

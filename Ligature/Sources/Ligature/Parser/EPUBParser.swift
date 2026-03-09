@@ -1,4 +1,5 @@
 import Foundation
+import ZIPFoundation
 
 public struct EPUBParser {
     public init() {}
@@ -58,17 +59,7 @@ public struct EPUBParser {
             .appendingPathComponent("Ligature-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-o", url.path, "-d", tempDir.path]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            throw EPUBError.extractionFailed
-        }
+        try FileManager.default.unzipItem(at: url, to: tempDir)
         return tempDir
     }
 

@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import SwiftUI
 import Forma
+import ZIPFoundation
 
 public enum LibraryViewMode {
     case grid
@@ -230,17 +231,7 @@ public class LibraryViewModel: ObservableObject {
                 try fm.copyItem(at: coversSource, to: tempDir.appendingPathComponent("covers"))
             }
 
-            // Create a tar archive using /usr/bin/tar
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-            process.arguments = ["-cf", url.path, "-C", tempDir.path, "."]
-            try process.run()
-            process.waitUntilExit()
-
-            guard process.terminationStatus == 0 else {
-                errorMessage = "Export failed."
-                return
-            }
+            try FileManager.default.zipItem(at: tempDir, to: url)
         } catch {
             errorMessage = "Export failed: \(error.localizedDescription)"
         }
@@ -259,17 +250,7 @@ public class LibraryViewModel: ObservableObject {
             try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: tempDir) }
 
-            // Extract the tar archive
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-            process.arguments = ["-xf", url.path, "-C", tempDir.path]
-            try process.run()
-            process.waitUntilExit()
-
-            guard process.terminationStatus == 0 else {
-                errorMessage = "Import failed: could not extract archive."
-                return
-            }
+            try FileManager.default.unzipItem(at: url, to: tempDir)
 
             let extractedDir = tempDir
 
