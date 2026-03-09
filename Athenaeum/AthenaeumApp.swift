@@ -74,6 +74,8 @@ struct AthenaeumApp: App {
                            chapterNotes: entry.chapterNotes,
                            inlineNotes: entry.inlineNotes)
                     .frame(minWidth: 800, minHeight: 600)
+            } else {
+                WindowCloseView()
             }
         }
         .defaultSize(width: 900, height: 700)
@@ -82,9 +84,22 @@ struct AthenaeumApp: App {
             if let bookId, let entry = NotesWindowStore.shared.retrieve(bookId) {
                 ChapterNotesReviewView(entry: entry)
                     .frame(minWidth: 600, minHeight: 400)
+            } else {
+                WindowCloseView()
             }
         }
         .defaultSize(width: 700, height: 500)
+    }
+}
+
+/// Auto-closes windows restored by macOS state restoration when no data is available.
+private struct WindowCloseView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onAppear { dismiss() }
     }
 }
 

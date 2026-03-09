@@ -20,5 +20,8 @@ DerivedData/
 *.swp
 *~
 
+# Local-only docs
+docs/POTENTIAL_ENHANCEMENTS.md
+
 # Claude Code
 .claude/settings.local.json
