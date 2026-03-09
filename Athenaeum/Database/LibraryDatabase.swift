@@ -18,9 +18,17 @@ public class LibraryDatabase {
     }
 
     private func migrate() throws {
+        // Detect legacy databases that used PRAGMA user_version for migration tracking.
+        // GRDB uses its own grdb_migrations table, so a pre-existing database will have
+        // user_version > 0 but no grdb_migrations entries, causing all migrations to re-run.
+        let legacyVersion = try dbPool.read { db in
+            try Int.fetchOne(db, sql: "PRAGMA user_version;") ?? 0
+        }
+
         var migrator = DatabaseMigrator()
 
         migrator.registerMigration("v1") { db in
+            guard legacyVersion < 1 else { return }
             try db.create(table: "books", ifNotExists: true) { t in
                 t.primaryKey("id", .text)
                 t.column("title", .text).notNull()
@@ -58,12 +66,14 @@ public class LibraryDatabase {
         }
 
         migrator.registerMigration("v2") { db in
+            guard legacyVersion < 2 else { return }
             try db.alter(table: "books") { t in
                 t.add(column: "reading_position", .text)
             }
         }
 
         migrator.registerMigration("v3") { db in
+            guard legacyVersion < 3 else { return }
             try db.create(table: "highlights", ifNotExists: true) { t in
                 t.primaryKey("id", .text)
                 t.column("book_id", .text).notNull()
@@ -78,6 +88,7 @@ public class LibraryDatabase {
         }
 
         migrator.registerMigration("v4") { db in
+            guard legacyVersion < 4 else { return }
             try db.create(table: "chapters", ifNotExists: true) { t in
                 t.primaryKey("id", .text)
                 t.column("book_id", .text).notNull()
@@ -104,6 +115,7 @@ public class LibraryDatabase {
         }
 
         migrator.registerMigration("v5") { db in
+            guard legacyVersion < 5 else { return }
             try db.alter(table: "chapters") { t in
                 t.add(column: "notes", .text)
                 t.add(column: "inline_notes", .text)
@@ -111,6 +123,7 @@ public class LibraryDatabase {
         }
 
         migrator.registerMigration("v6") { db in
+            guard legacyVersion < 6 else { return }
             try db.alter(table: "book_authors") { t in
                 t.add(column: "is_primary", .integer).notNull().defaults(to: 0)
             }
