@@ -624,8 +624,7 @@ public class ReaderViewModel: ObservableObject {
     public func loadCurrentChapter() {
         guard let url = currentChapterURL else { return }
         isLoading = true
-        let request = URLRequest(url: url)
-        webView?.load(request)
+        webView?.loadFileURL(url, allowingReadAccessTo: book.extractedURL)
     }
 
     public func nextChapter() {
@@ -894,7 +893,7 @@ public class ReaderViewModel: ObservableObject {
         }
         objc_setAssociatedObject(hidden, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN)
         hidden.navigationDelegate = delegate
-        hidden.load(URLRequest(url: url))
+        hidden.loadFileURL(url, allowingReadAccessTo: book.extractedURL)
     }
 
     public func zoomIn() {

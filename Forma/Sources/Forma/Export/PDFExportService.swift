@@ -169,7 +169,7 @@ public class PDFExportService {
 
         objc_setAssociatedObject(webView, "pdfDelegate", delegate, .OBJC_ASSOCIATION_RETAIN)
         webView.navigationDelegate = delegate
-        webView.load(URLRequest(url: url))
+        webView.loadFileURL(url, allowingReadAccessTo: book.extractedURL)
     }
 
     private func injectPrintCSS(webView: WKWebView, isFirstChapter: Bool, completion: @escaping () -> Void) {
