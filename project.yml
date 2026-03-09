@@ -12,6 +12,9 @@ packages:
     path: Ligature
   Forma:
     path: Forma
+  GRDB:
+    url: https://github.com/groue/GRDB.swift.git
+    from: "7.0.0"
 
 targets:
   Athenaeum:
@@ -24,6 +27,8 @@ targets:
           - "*.entitlements"
     dependencies:
       - package: Forma
+      - package: GRDB
+        product: GRDB
     info:
       path: Athenaeum/Info.plist
       properties:
