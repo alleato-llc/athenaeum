@@ -572,7 +572,23 @@ public class ReaderViewModel: ObservableObject {
     public func loadCurrentChapter() {
         guard let url = currentChapterURL else { return }
         isLoading = true
+        // Pre-set background to match theme, preventing white flash on chapter transitions
+        let bgColor = themeManager.activeTheme.backgroundColor
+        if let webView = webView {
+            updateDocumentStartBackground(webView: webView, color: bgColor)
+        }
         webView?.loadFileURL(url, allowingReadAccessTo: book.extractedURL)
+    }
+
+    private func updateDocumentStartBackground(webView: WKWebView, color: String) {
+        let controller = webView.configuration.userContentController
+        controller.removeAllUserScripts()
+        let script = WKUserScript(
+            source: "document.addEventListener('DOMContentLoaded', function() { document.documentElement.style.backgroundColor = '\(color)'; document.body.style.backgroundColor = '\(color)'; });",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        controller.addUserScript(script)
     }
 
     public func nextChapter() {

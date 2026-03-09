@@ -93,7 +93,7 @@ public class ThemeManager: ObservableObject {
                     }
                     \(headingCSS)
                     body { background-color: \(theme.backgroundColor) !important; }
-                    a, a:visited { color: \(theme.linkColor) !important; }
+                    a[href], a[href]:visited { color: \(theme.linkColor) !important; }
                     img { max-width: 100% !important; height: auto !important; }
                     pre, code {
                         background-color: \(theme.codeBackgroundColor) !important;
@@ -139,7 +139,7 @@ public class ThemeManager: ObservableObject {
                         cursor: pointer;
                     }
                     body { background-color: \(theme.backgroundColor) !important; }
-                    a, a:visited { color: \(theme.linkColor) !important; }
+                    a[href], a[href]:visited { color: \(theme.linkColor) !important; }
                     img { max-width: 100% !important; height: auto !important; }
                     pre, code {
                         background-color: \(theme.codeBackgroundColor) !important;

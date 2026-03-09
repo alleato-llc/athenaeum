@@ -16,8 +16,17 @@ public struct EPUBWebView: NSViewRepresentable {
         config.userContentController.add(context.coordinator, name: "highlightHandler")
         config.userContentController.add(context.coordinator, name: "scrollHandler")
 
+        let bgColor = viewModel.themeManager.activeTheme.backgroundColor
+        let earlyStyleScript = WKUserScript(
+            source: "document.addEventListener('DOMContentLoaded', function() { document.documentElement.style.backgroundColor = '\(bgColor)'; document.body.style.backgroundColor = '\(bgColor)'; });",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        config.userContentController.addUserScript(earlyStyleScript)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+        webView.setValue(false, forKey: "drawsBackground")
         viewModel.webView = webView
         viewModel.loadCurrentChapter()
         return webView
