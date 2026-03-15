@@ -8,6 +8,14 @@ public enum NavigationMode {
     case chapter
 }
 
+private enum ScrollBehavior {
+    case top
+    case bottom
+    case fragment(String)
+    case restore
+    case position(Double)
+}
+
 public class ReaderViewModel: ObservableObject {
     public let book: EPUBBook
     public let themeManager: ThemeManager
@@ -39,6 +47,8 @@ public class ReaderViewModel: ObservableObject {
 
     private var scrollPositions: [Int: Double] = [:]
     private var scrollToBottomOnLoad: Bool = false
+    private var pendingFragment: String?
+    private var navigationGeneration: Int = 0
     private var chapterPageCounts: [Int: Int] = [:]
     private var measuringWebView: WKWebView?
     private var measureQueue: [Int] = []
@@ -454,12 +464,7 @@ public class ReaderViewModel: ObservableObject {
     }
 
     public func navigateToBookmark(_ bookmark: Bookmark) {
-        saveScrollPosition()
-        collectAndCacheHighlights()
-        currentChapterIndex = bookmark.chapterIndex
-        goToChapter = bookmark.chapterIndex + 1
-        scrollPositions[bookmark.chapterIndex] = bookmark.scrollPosition
-        loadCurrentChapter()
+        transitionToChapter(bookmark.chapterIndex, scroll: .position(bookmark.scrollPosition))
     }
 
     public func chapterTitle(for chapterIndex: Int) -> String {
@@ -591,22 +596,47 @@ public class ReaderViewModel: ObservableObject {
         controller.addUserScript(script)
     }
 
-    public func nextChapter() {
-        guard currentChapterIndex < book.spine.count - 1 else { return }
+    private func transitionToChapter(_ index: Int, scroll: ScrollBehavior) {
+        guard index >= 0, index < book.spine.count else { return }
+
+        navigationGeneration += 1
         saveScrollPosition()
         collectAndCacheHighlights()
-        currentChapterIndex += 1
-        goToChapter = currentChapterIndex + 1
+
+        currentChapterIndex = index
+        goToChapter = index + 1
+
+        switch scroll {
+        case .top:
+            scrollPositions.removeValue(forKey: index)
+            pendingFragment = nil
+            scrollToBottomOnLoad = false
+        case .bottom:
+            scrollPositions.removeValue(forKey: index)
+            pendingFragment = nil
+            scrollToBottomOnLoad = true
+        case .fragment(let id):
+            scrollPositions.removeValue(forKey: index)
+            pendingFragment = id
+            scrollToBottomOnLoad = false
+        case .restore:
+            pendingFragment = nil
+            scrollToBottomOnLoad = false
+        case .position(let y):
+            scrollPositions[index] = y
+            pendingFragment = nil
+            scrollToBottomOnLoad = false
+        }
+
         loadCurrentChapter()
     }
 
+    public func nextChapter() {
+        transitionToChapter(currentChapterIndex + 1, scroll: .top)
+    }
+
     public func previousChapter() {
-        guard currentChapterIndex > 0 else { return }
-        saveScrollPosition()
-        collectAndCacheHighlights()
-        currentChapterIndex -= 1
-        goToChapter = currentChapterIndex + 1
-        loadCurrentChapter()
+        transitionToChapter(currentChapterIndex - 1, scroll: .restore)
     }
 
     public func navigateToChapter() {
@@ -615,10 +645,7 @@ public class ReaderViewModel: ObservableObject {
             goToChapter = currentChapterIndex + 1
             return
         }
-        saveScrollPosition()
-        collectAndCacheHighlights()
-        currentChapterIndex = index
-        loadCurrentChapter()
+        transitionToChapter(index, scroll: .top)
     }
 
     private func collectAndCacheHighlights() {
@@ -671,20 +698,10 @@ public class ReaderViewModel: ObservableObject {
         let cleanHref = href.components(separatedBy: "#").first ?? href
 
         if let index = book.spine.firstIndex(where: { $0.href == cleanHref }) {
-            saveScrollPosition()
-            currentChapterIndex = index
-            goToChapter = index + 1
-
-            if href.contains("#") {
-                loadCurrentChapter()
-                let fragment = href.components(separatedBy: "#").last ?? ""
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.webView?.evaluateJavaScript(
-                        "document.getElementById('\(fragment)')?.scrollIntoView(true);"
-                    )
-                }
+            if let fragment = href.components(separatedBy: "#").last, href.contains("#") {
+                transitionToChapter(index, scroll: .fragment(fragment))
             } else {
-                loadCurrentChapter()
+                transitionToChapter(index, scroll: .top)
             }
         }
     }
@@ -711,13 +728,7 @@ public class ReaderViewModel: ObservableObject {
         if direction == "next" {
             nextChapter()
         } else if direction == "previous" {
-            saveScrollPosition()
-            collectAndCacheHighlights()
-            guard currentChapterIndex > 0 else { return }
-            currentChapterIndex -= 1
-            goToChapter = currentChapterIndex + 1
-            scrollToBottomOnLoad = true
-            loadCurrentChapter()
+            transitionToChapter(currentChapterIndex - 1, scroll: .bottom)
         }
     }
 
@@ -759,13 +770,7 @@ public class ReaderViewModel: ObservableObject {
                   let atTop = info["atTop"] as? Bool else { return }
 
             if atTop {
-                if self.currentChapterIndex > 0 {
-                    self.saveScrollPosition()
-                    self.currentChapterIndex -= 1
-                    self.goToChapter = self.currentChapterIndex + 1
-                    self.loadCurrentChapter()
-                    self.scrollToBottomOnLoad = true
-                }
+                self.transitionToChapter(self.currentChapterIndex - 1, scroll: .bottom)
             } else {
                 self.webView?.evaluateJavaScript("window.scrollBy(0, -(window.innerHeight - 40));")
                 self.updatePageInfo()
@@ -783,18 +788,23 @@ public class ReaderViewModel: ObservableObject {
             return JSON.stringify({ pageInChapter: pageInChapter, chapterPages: chapterPages, scrollY: window.scrollY });
         })();
         """
+        let chapterIndex = currentChapterIndex
+        let generation = navigationGeneration
         webView?.evaluateJavaScript(js) { [weak self] result, _ in
-            guard let self = self, let jsonString = result as? String,
+            guard let self = self, self.navigationGeneration == generation,
+                  let jsonString = result as? String,
                   let data = jsonString.data(using: .utf8),
                   let info = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let pageInChapter = info["pageInChapter"] as? Int,
                   let chapterPages = info["chapterPages"] as? Int else { return }
             DispatchQueue.main.async {
+                guard self.navigationGeneration == generation else { return }
+
                 if let scrollY = info["scrollY"] as? Double {
-                    self.scrollPositions[self.currentChapterIndex] = scrollY
+                    self.scrollPositions[chapterIndex] = scrollY
                 }
 
-                self.chapterPageCounts[self.currentChapterIndex] = chapterPages
+                self.chapterPageCounts[chapterIndex] = chapterPages
 
                 var pagesBeforeCurrent = 0
                 for i in 0..<self.currentChapterIndex {
@@ -888,27 +898,35 @@ public class ReaderViewModel: ObservableObject {
 
     public func onChapterLoaded() {
         isLoading = false
+        let generation = navigationGeneration
         applyThemeStyles()
         injectHighlightEngine()
+
+        let scrollJS: String
         if scrollToBottomOnLoad {
             scrollToBottomOnLoad = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.webView?.evaluateJavaScript("window.scrollTo(0, document.documentElement.scrollHeight);")
-                self?.updatePageInfo()
-            }
+            scrollJS = "window.scrollTo(0, document.documentElement.scrollHeight);"
         } else if let initialScroll = initialScrollPosition, initialScroll > 0 {
             initialScrollPosition = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.webView?.evaluateJavaScript("window.scrollTo(0, \(initialScroll));")
-                self?.updatePageInfo()
-            }
+            scrollJS = "window.scrollTo(0, \(initialScroll));"
+        } else if let fragment = pendingFragment {
+            pendingFragment = nil
+            scrollJS = "document.getElementById('\(fragment)')?.scrollIntoView(true);"
         } else {
-            restoreScrollPosition()
+            let y = scrollPositions[currentChapterIndex] ?? 0
+            scrollJS = "window.scrollTo(0, \(y));"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            self?.updatePageInfo()
-            if self?.chapterPageCounts.isEmpty == true {
-                self?.startMeasuringAllChapters()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self, self.navigationGeneration == generation else { return }
+            self.webView?.evaluateJavaScript(scrollJS)
+            self.updatePageInfo()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self, self.navigationGeneration == generation else { return }
+            self.updatePageInfo()
+            if self.chapterPageCounts.isEmpty == true {
+                self.startMeasuringAllChapters()
             }
         }
     }
@@ -926,20 +944,16 @@ public class ReaderViewModel: ObservableObject {
     }
 
     public func saveScrollPosition() {
+        let chapterIndex = currentChapterIndex
+        let generation = navigationGeneration
         webView?.evaluateJavaScript("window.scrollY") { [weak self] result, _ in
+            guard let self = self, self.navigationGeneration == generation else { return }
             if let y = result as? Double {
-                self?.scrollPositions[self?.currentChapterIndex ?? 0] = y
+                self.scrollPositions[chapterIndex] = y
             }
         }
     }
 
-    private func restoreScrollPosition() {
-        if let y = scrollPositions[currentChapterIndex], y > 0 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.webView?.evaluateJavaScript("window.scrollTo(0, \(y));")
-            }
-        }
-    }
 }
 
 extension ReaderViewModel {

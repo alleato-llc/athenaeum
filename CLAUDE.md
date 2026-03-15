@@ -187,6 +187,7 @@ See [docs/LOCALIZATION.md](docs/LOCALIZATION.md) for details on adding languages
 - [docs/FONTS.md](docs/FONTS.md) — Font system: available fonts, font pairing, CSS injection
 - [docs/IMPORT_EXPORT.md](docs/IMPORT_EXPORT.md) — Import & export: library backup/restore, directory import
 - [docs/PDF_EXPORT.md](docs/PDF_EXPORT.md) — PDF export: headless WKWebView rendering, job management, caching
+- [docs/NAVIGATION.md](docs/NAVIGATION.md) — Reader navigation: chapter transitions, scroll behavior, async safety
 - [docs/LOCALIZATION.md](docs/LOCALIZATION.md) — Localization guide: supported languages, adding translations
 - [docs/TESTING.md](docs/TESTING.md) — Testing: conventions, shared helpers, fixtures, adding tests
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
